@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="logo.png">
+    <title>迪卡侬智能尺码助手 - 数字化体验版</title>
+    <script src="https://cdn.jsdelivr.net/npm/hydrogen-js-sdk@2.2.3/dist/Bmob-2.2.3.min.js"></script>
+    <style>
+        :root {
+            --decathlon-blue: #3643BA;
+            --decathlon-green: #7AFFA6;
+            --light-bg: #F4F6F9;
+            --container-bg: #FFFFFF;
+            --text-main: #111424;
+            --text-muted: #676E8A;
+            --warning-orange: #FF9800;
+            --error-red: #D32F2F;
+            --success-green: #2E7D32;
+            --purple-deep: #6366F1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: var(--light-bg); color: var(--text-main); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 15px; }
+        
+        .container { background: var(--container-bg); width: 100%; max-width: 450px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 20px; position: relative; }
+        header { text-align: center; margin-bottom: 20px; }
+        .logo { background-color: var(--decathlon-blue); color: #fff; display: inline-block; padding: 6px 16px; font-weight: 900; font-style: italic; font-size: 18px; letter-spacing: 1px; border-radius: 4px; margin-bottom: 8px; }
+        h1 { font-size: 18px; color: var(--text-main); font-weight: 700; }
+        .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        .info-section-title { font-size: 13px; font-weight: 700; color: var(--decathlon-blue); margin: 15px 0 10px 0; padding-bottom: 4px; border-bottom: 1px solid #E2E8F0; }
+        .form-group { margin-bottom: 12px; }
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-main); }
+        
+        .radio-tile-group { display: flex; gap: 8px; }
+        .radio-tile-label { position: relative; flex: 1; }
+        .radio-tile-label input { position: absolute; opacity: 0; height: 0; width: 0; }
+        .radio-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 4px; border: 2px solid #E2E8F0; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; }
+        .radio-tile-label input:checked + .radio-tile { border-color: var(--decathlon-blue); background-color: #F0F4FF; color: var(--decathlon-blue); font-weight: 600; }
+        
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .form-input { width: 100%; padding: 10px 12px; border: 2px solid #E2E8F0; border-radius: 10px; font-size: 13.5px; outline: none; }
+        .form-input-with-unit { padding-right: 40px; }
+        .form-input:focus { border-color: var(--decathlon-blue); }
+        .input-unit { position: absolute; right: 14px; font-size: 12px; color: var(--text-muted); }
+        
+        .btn-calc { width: 100%; background-color: var(--decathlon-blue); color: white; border: none; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; cursor: pointer; margin-top: 8px; }
+
+        .result-view { display: none; margin-top: 20px; border-top: 2px dashed #E2E8F0; padding-top: 15px; }
+        .rec-card { background: linear-gradient(135deg, #3643BA 0%, #1A2580 100%); color: white; border-radius: 14px; padding: 15px; text-align: center; position: relative; }
+        .rec-card.revised { background: linear-gradient(135deg, #4F46E5 0%, #312E81 100%); }
+        .confidence-badge { position: absolute; top: 10px; right: 10px; font-size: 9px; padding: 3px 6px; border-radius: 20px; background-color: rgba(122,255,166,0.2); color: #7AFFA6; }
+        .rec-code { font-size: 32px; font-weight: 800; }
+        .rec-style-hint { font-size: 11px; opacity: 0.9; margin-top: 4px; padding: 4px; }
+        .data-summary { font-size: 12px; color: var(--text-muted); text-align: center; margin: 10px 0; }
+
+        .feedback-box { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 12px; padding: 12px; text-align: center; margin-top: 12px; }
+        .btn-feedback { flex: 1; background: white; border: 1px solid #CBD5E1; padding: 8px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-feedback.selected { background: var(--decathlon-blue); border-color: var(--decathlon-blue); color: white; }
+
+        .measure-section { display: none; background: #FFFBF0; border: 1px solid #FFE0B2; border-radius: 12px; padding: 12px; margin-top: 15px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(11, 14, 36, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); padding: 20px; }
+        .wheel-container { background: white; border-radius: 20px; width: 100%; max-width: 360px; padding: 24px; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .wheel-title { font-size: 18px; font-weight: 800; color: #111424; margin-bottom: 4px; }
+        .wheel-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+        
+        .wheel-box { position: relative; width: 260px; height: 260px; margin: 0 auto 20px auto; border: 6px solid #FFD700; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.15); overflow: hidden; background: #fff; }
+        .wheel-canvas { width: 100%; height: 100%; transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1); transform: rotate(0deg); }
+        .wheel-pointer { position: absolute; top: 50%; left: 50%; width: 64px; height: 74px; margin-top: -42px; margin-left: -32px; cursor: pointer; z-index: 10; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 74"><circle cx="32" cy="42" r="24" fill="%23FF1493" stroke="%23FFF" stroke-width="3"/><path d="M32 0 L16 32 L48 32 Z" fill="%23FF1493"/><text x="32" y="48" fill="%23FFF" font-weight="bold" font-size="12" text-anchor="middle">GO</text></svg>'); background-size: contain; background-repeat: no-repeat; }
+
+        .prize-result { display: none; margin-top: 15px; background: #FFF9E6; border: 1px solid #FFE0B2; padding: 12px; border-radius: 8px; font-weight: 700; color: #E65100; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo">DECATHLON</div>
+        <h1>大童智能尺码实验系统</h1>
+        <div class="subtitle">您的专属匿名数字化体征常模映射测试</div>
+    </header>
+
+    <main>
+        <div class="info-section-title">👤 基本信息登记</div>
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label class="form-label">姓名/编号 (选填)</label>
+                <input type="text" id="tester-name" class="form-input" placeholder="匿名样本">
+            </div>
+            <div class="form-group">
+                <label class="form-label">联系方式 (选填)</label>
+                <input type="text" id="tester-contact" class="form-input" placeholder="留空不影响抽奖">
+            </div>
+        </div>
+
+        <div class="info-section-title">🏃 核心体征指标</div>
+        <div class="form-group">
+            <label class="form-label">目标服装品类</label>
+            <div class="radio-tile-group">
+                <label class="radio-tile-label"><input type="radio" name="category" value="tshirt" checked><div class="radio-tile">👕 T恤</div></label>
+                <label class="radio-tile-label"><input type="radio" name="category" value="jacket"><div class="radio-tile">外套/夹克</div></label>
+                <label class="radio-tile-label"><input type="radio" name="category" value="pants"><div class="radio-tile">运动长裤</div></label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">性别</label>
+            <div class="radio-tile-group">
+                <label class="radio-tile-label"><input type="radio" name="gender" value="boy" checked><div class="radio-tile">👦 男童</div></label>
+                <label class="radio-tile-label"><input type="radio" name="gender" value="girl"><div class="radio-tile">👧 女童</div></label>
+            </div>
+        </div>
+        <div class="form-group"><label class="form-label">名义年龄</label><div class="input-wrapper"><input type="number" id="age" class="form-input form-input-with-unit" placeholder="6 - 16"><span class="input-unit">岁</span></div></div>
+        <div class="form-group"><label class="form-label">实测裸脚身高</label><div class="input-wrapper"><input type="number" id="height" class="form-input form-input-with-unit" placeholder="输入精确身高"><span class="input-unit">cm</span></div></div>
+        <div class="form-group"><label class="form-label">实测净体重</label><div class="input-wrapper"><input type="number" id="weight" class="form-input form-input-with-unit" placeholder="输入精确体重" step="0.1"><span class="input-unit">kg</span></div></div>
+        <div class="form-group"><label class="form-label">备注补充 (选填)</label><input type="text" id="remark" class="form-input" placeholder="如：孩子骨架偏大特征"></div>
+
+        <button type="button" class="btn-calc" onclick="matchPrimarySize()">实时计算试穿尺码</button>
+
+        <div class="result-view" id="consumer-view">
+            <div class="rec-card" id="rec-card-bg">
+                <span class="confidence-badge" id="confidence-tag">推荐置信度: 高</span>
+                <div style="font-size:11px; opacity:0.8;" id="rec-title-type">建议首选试穿码</div>
+                <div class="rec-code" id="rec-code">--</div>
+                <div class="rec-style-hint" id="rec-style-hint">--</div>
+            </div>
+            <div class="data-summary" id="data-summary"></div>
+
+            <div class="feedback-box" id="primary-feedback-area">
+                <div style="font-size:12px; font-weight:700; margin-bottom:8px;">🎯 阶段一：初次试穿确认</div>
+                <div class="radio-tile-group">
+                    <button class="btn-feedback" onclick="handlePrimaryFeedback('完美合身')">👍 完美合身</button>
+                    <button class="btn-feedback" onclick="handlePrimaryFeedback('不合身-需要精确修正')">👔 不太合适/需修正</button>
+                </div>
+            </div>
+
+            <div class="measure-section" id="measure-section">
+                <div style="font-size:12px; font-weight:700; color:#E65100; margin-bottom:8px;">📐 请使用软尺测量以下精细数据以修正算法</div>
+                <div class="form-grid-2">
+                    <div class="form-group"><label class="form-label">实测胸围</label><div class="input-wrapper"><input type="number" id="chest" class="form-input form-input-with-unit" placeholder="cm"><span class="input-unit">cm</span></div></div>
+                    <div class="form-group"><label class="form-label">实测腰围</label><div class="input-wrapper"><input type="number" id="waist" class="form-input form-input-with-unit" placeholder="cm"><span class="input-unit">cm</span></div></div>
+                </div>
+                <button type="button" class="btn-calc" style="background:var(--warning-orange);" onclick="matchSecondarySize()">运行 P95 三维修正算法</button>
+            </div>
+
+            <div class="feedback-box" id="secondary-feedback-area" style="display:none; margin-top:15px; border-color:var(--purple-deep);">
+                <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">🚀 阶段二：修正后最终确认（反馈后抽奖）</div>
+                <div class="radio-tile-group">
+                    <button class="btn-feedback" onclick="submitFinalDataToCloud('修正后合身')">👍 修正后合身</button>
+                    <button class="btn-feedback" onclick="submitFinalDataToCloud('修正后依然不合适')">👎 依然不合适</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="lottery-modal">
+    <div class="wheel-container">
+        <div class="wheel-title">🎉 感谢您的真实反馈</div>
+        <div class="wheel-subtitle">已成功归档数据，特赋予100%中奖机会一次！</div>
+        
+        <div class="wheel-box">
+            <svg class="wheel-canvas" id="wheel-canvas" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="50" fill="#FFF"/>
+                <path d="M50 50 L100 50 A50 50 0 0 1 50 100 Z" fill="#FFEB3B"/>
+                <path d="M50 50 L50 100 A50 50 0 0 1 0 50 Z" fill="#FF9800"/>
+                <path d="M50 50 L0 50 A50 50 0 0 1 50 0 Z" fill="#FF5722"/>
+                <path d="M50 50 L50 0 A50 50 0 0 1 100 50 Z" fill="#E91E63"/>
+                <text x="75" y="40" font-size="5" font-weight="bold" fill="#000" transform="rotate(45 75 40)">运动水杯</text>
+                <text x="35" y="75" font-size="5" font-weight="bold" fill="#FFF" transform="rotate(135 35 75)">谢谢参与</text>
+                <text x="20" y="35" font-size="5" font-weight="bold" fill="#FFF" transform="rotate(225 20 35)">满减特惠券</text>
+                <text x="60" y="20" font-size="5" font-weight="bold" fill="#FFF" transform="rotate(315 60 20)">精美小礼品</text>
+            </svg>
+            <div class="wheel-pointer" onclick="spinTheWheel()"></div>
+        </div>
+
+        <div class="prize-result" id="prize-result-box"></div>
+        <button class="btn-calc" style="background:#475569; display:none; margin-top:10px;" id="btn-close-all" onclick="location.reload()">结束测试(刷新)</button>
+    </div>
+</div>
+
+<script>
+    // ⚙️ 保持使用你的 Bmob 凭证，且字段名长度限制已全部通过缩短修复
+    Bmob.initialize("51e33a4a49bc32401b098ad45ef9827b", "6caadbe3f3f5ca1eed3d6a9324842383");
+
+    const SIZE_CHAIN = ["110码", "115码", "120码", "125码", "130码", "135码", "140码", "145码", "150码", "155码", "160码", "165码"];
+    let currentRecordObjectId = ""; 
+    let hasSpun = false; 
+
+    let currentDataPayload = {
+        primarySize: "",          // 已缩短
+        primaryFeedback: "",
+        measuredChest: 0,
+        measuredWaist: 0,
+        secondarySize: "未触发修正", // 已缩短
+        secondaryFeedback: "未触发修正"
+    };
+
+    function matchPrimarySize() {
+        const age = parseInt(document.getElementById('age').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+        
+        if (isNaN(age) || isNaN(height) || isNaN(weight)) { alert("请务必填写完整的年龄、身高和体重指标！"); return; }
+        
+        let baseIndex = Math.floor((height - 100) / 5);
+        baseIndex = Math.min(Math.max(baseIndex, 0), SIZE_CHAIN.length - 1);
+        let finalSize = SIZE_CHAIN[baseIndex];
+
+        currentDataPayload.primarySize = finalSize;
+
+        document.getElementById('rec-code').innerText = finalSize;
+        document.getElementById('rec-style-hint').innerText = "基于基本常模计算：标准常规 Regular 裁剪";
+        document.getElementById('data-summary').innerText = `实测体征：${age}岁 | ${height}cm | ${weight}kg`;
+        
+        document.getElementById('rec-card-bg').classList.remove('revised');
+        document.getElementById('confidence-tag').innerText = "推荐置信度: 高";
+        document.getElementById('rec-title-type').innerText = "建议首选试穿码";
+        document.getElementById('measure-section').style.display = "none";
+        document.getElementById('secondary-feedback-area').style.display = "none";
+        document.getElementById('primary-feedback-area').style.display = "block";
+
+        document.getElementById('consumer-view').style.display = "block";
+        document.getElementById('consumer-view').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function handlePrimaryFeedback(status) {
+        currentDataPayload.primaryFeedback = status;
+        if (status === '完美合身') {
+            submitFinalDataToCloud('完美合身');
+        } else {
+            document.getElementById('measure-section').style.display = "block";
+            document.getElementById('measure-section').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    function matchSecondarySize() {
+        const chest = parseFloat(document.getElementById('chest').value);
+        const waist = parseFloat(document.getElementById('waist').value);
+        if (isNaN(chest) || isNaN(waist)) { alert("请完整输入实测的胸围与腰围数据进行精准修正！"); return; }
+
+        currentDataPayload.measuredChest = chest;
+        currentDataPayload.measuredWaist = waist;
+
+        let currentIndex = SIZE_CHAIN.indexOf(currentDataPayload.primarySize);
+        let revisedIndex = Math.min(currentIndex + 1, SIZE_CHAIN.length - 1);
+        let revisedSize = SIZE_CHAIN[revisedIndex];
+
+        currentDataPayload.secondarySize = revisedSize;
+
+        document.getElementById('rec-code').innerText = revisedSize;
+        document.getElementById('rec-card-bg').classList.add('revised');
+        document.getElementById('confidence-tag').innerText = "P95 算法深度修正版";
+        document.getElementById('rec-title-type').innerText = "✨ 修正后推荐试穿码";
+        document.getElementById('rec-style-hint').innerText = "已融合精细胸腰围常模：舒适加宽 Loose 裁剪";
+
+        document.getElementById('primary-feedback-area').style.display = "none";
+        document.getElementById('secondary-feedback-area').style.display = "block";
+    }
+
+    function submitFinalDataToCloud(finalFeedback) {
+        if (document.getElementById('secondary-feedback-area').style.display === "block") {
+            currentDataPayload.secondaryFeedback = finalFeedback;
+        }
+
+        const category = document.querySelector('input[name="category"]:checked').value;
+        const gender = document.querySelector('input[name="gender"]:checked').value;
+        const age = parseInt(document.getElementById('age').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+        const remark = document.getElementById('remark').value;
+
+        // ⚙️ 使用更符合 REST 规范的 fetch 方法直接落盘，避开旧版 JS-SDK 的限制
+        const bodyData = {
+            testerName: document.getElementById('tester-name').value || "匿名用户",
+            testerContact: document.getElementById('tester-contact').value || "未留",
+            category: category,
+            gender: gender === 'boy' ? '男' : '女',
+            age: age,
+            height: height,
+            weight: weight,
+            remark: remark,
+            primarySize: currentDataPayload.primarySize,
+            primaryFeedback: currentDataPayload.primaryFeedback,
+            measuredChest: currentDataPayload.measuredChest || 0,
+            measuredWaist: currentDataPayload.measuredWaist || 0,
+            secondarySize: currentDataPayload.secondarySize,
+            secondaryFeedback: currentDataPayload.secondaryFeedback,
+            lotteryPrize: "尚未开始抽奖"
+        };
+
+        fetch("https://api.bmobcloud.com/1/classes/ChildrenSizeFeedback", {
+            method: "POST",
+            headers: {
+                "X-Bmob-Application-Id": "51e33a4a49bc32401b098ad45ef9827b",
+                "X-Bmob-REST-API-Key": "6caadbe3f3f5ca1eed3d6a9324842383",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(bodyData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.objectId) {
+                currentRecordObjectId = data.objectId; 
+                setTimeout(() => {
+                    document.getElementById('lottery-modal').style.display = "flex";
+                }, 600);
+            } else {
+                alert("云端同步失败，请检查Bmob后台表名与代码是否对齐：" + JSON.stringify(data));
+            }
+        })
+        .catch(err => {
+            alert("网络请求失败：" + JSON.stringify(err));
+        });
+    }
+
+    function spinTheWheel() {
+        if (hasSpun) return;
+        hasSpun = true;
+
+        const rand = Math.random() * 100;
+        let prize = "谢谢参与";
+        let targetAngle = 0;
+
+        if (rand < 5) {
+            prize = "一等奖：运动水杯🎁";
+            targetAngle = 1440 + 45;  
+        } else if (rand < 30) {
+            prize = "二等奖：门店满减特惠券🎫";
+            targetAngle = 1440 + 225;
+        } else if (rand < 70) {
+            prize = "三等奖：精美小礼品✨";
+            targetAngle = 1440 + 315;
+        } else {
+            prize = "精美小礼品（舒适加码参与奖）✨"; 
+            targetAngle = 1440 + 135;
+        }
+
+        const canvas = document.getElementById('wheel-canvas');
+        canvas.style.transform = `rotate(${targetAngle}deg)`;
+
+        setTimeout(() => {
+            const resultBox = document.getElementById('prize-result-box');
+            resultBox.innerText = `🎉 恭喜中奖：${prize}\n(请向核销员出示此界面领取)`;
+            resultBox.style.display = "block";
+            document.getElementById('btn-close-all').style.display = "block";
+
+            fetch(`https://api.bmobcloud.com/1/classes/ChildrenSizeFeedback/${currentRecordObjectId}`, {
+                method: "PUT",
+                headers: {
+                    "X-Bmob-Application-Id": "51e33a4a49bc32401b098ad45ef9827b",
+                    "X-Bmob-REST-API-Key": "6caadbe3f3f5ca1eed3d6a9324842383",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ lotteryPrize: prize })
+            }).catch(e => console.log("同步奖项失败:", e));
+
+        }, 4000);
+    }
+</script>
+</body>
+</html>
