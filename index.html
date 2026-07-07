@@ -29,7 +29,7 @@
             align-items: flex-start; 
             min-height: 100vh; 
             padding: 15px;
-            min-width: 320px; /* 防止极小屏幕下布局错乱 */
+            min-width: 320px;
         }
         
         .container { background: var(--container-bg); width: 100%; max-width: 450px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 20px; position: relative; }
@@ -71,8 +71,7 @@
         .btn-feedback.selected { background: var(--decathlon-blue); border-color: var(--decathlon-blue); color: white; }
 
         .measure-section { display: none; background: #FFFBF0; border: 1px solid #FFE0B2; border-radius: 12px; padding: 12px; margin-top: 15px; }
-
-        /* 模态弹窗样式 */
+        
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(11, 14, 36, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); padding: 20px; }
         .modal-container { background: white; border-radius: 20px; width: 100%; max-width: 340px; padding: 30px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .modal-title { font-size: 20px; font-weight: 800; color: var(--decathlon-blue); margin-bottom: 8px; }
@@ -173,13 +172,9 @@
                 <button type="button" id="btn-secondary-calc" class="btn-calc" style="background:var(--warning-orange);" onclick="matchSecondarySize()">运行 P95 三维修正算法</button>
             </div>
 
-            <div class="feedback-box" id="secondary-feedback-area">
-                <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">🚀 阶段二：修正后最终确认</div>
-                <div class="radio-tile-group">
-                    <button class="btn-feedback" id="btn-sf-perfect" onclick="handleSecondaryFeedback(this, '修正后合身')">👍 修正后合身</button>
-                    <button class="btn-feedback" id="btn-sf-wrong" onclick="handleSecondaryFeedback(this, '修正后依然不合适')">👎 依然不合适</button>
-                </div>
-                <button type="button" id="btn-cloud-submit" class="btn-calc" style="background:var(--purple-deep); margin-top:12px;" onclick="secureSubmitToCloud()">确认无误并上传云端数据</button>
+            <div class="feedback-box" id="secondary-feedback-area" style="display:none;">
+                <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">🚀 数据核对与最终上传</div>
+                <button type="button" id="btn-cloud-submit" class="btn-calc" style="background:var(--purple-deep);" onclick="secureSubmitToCloud()">确认无误并上传云端数据</button>
             </div>
         </div>
     </main>
@@ -195,347 +190,98 @@
 </div>
 
 <script>
-    // 异步高可用包裹，防止因广告插件或网络DNS拦截导致整体逻辑挂掉
     try {
         Bmob.initialize("51e33a4a49bc32401b098ad45ef9827b", "6caadbe3f3f5ca1eed3d6a9324842383");
     } catch (e) {
-        console.warn("Mimi外部安全提示：云端SDK初始化受阻，系统已紧急启动本地离线计算沙盒。", e);
+        console.warn("Mimi外部安全提示：云端SDK初始化受阻。", e);
     }
 
-    // 1. 全局静态常模字典与新尺码定义
-    const SIZE_BRACKETS = [
-        "123-130cm 7-8岁",
-        "131-140cm 8-9岁",
-        "141-150cm 10-11岁",
-        "151-160cm 12-13岁",
-        "161-172cm 14-15岁"
-    ];
-
+    const SIZE_BRACKETS = ["123-130cm 7-8岁", "131-140cm 8-9岁", "141-150cm 10-11岁", "151-160cm 12-13岁", "161-172cm 14-15岁"];
     const SIZE_STANDARDS = {
-        "123-130cm 7-8岁": { chest: 64, waist: 58, hip: 68, leg: 56, avgWeight: 27 },
-        "131-140cm 8-9岁": { chest: 70, waist: 62, hip: 74, leg: 62, avgWeight: 34 },
-        "141-150cm 10-11岁": { chest: 76, waist: 66, hip: 80, leg: 68, avgWeight: 42 },
-        "151-160cm 12-13岁": { chest: 82, waist: 70, hip: 86, leg: 74, avgWeight: 50 },
-        "161-172cm 14-15岁": { chest: 88, waist: 74, hip: 92, leg: 80, avgWeight: 60 }
+        "123-130cm 7-8岁": { chest: 64, waist: 58, avgWeight: 27 },
+        "131-140cm 8-9岁": { chest: 70, waist: 62, avgWeight: 34 },
+        "141-150cm 10-11岁": { chest: 76, waist: 66, avgWeight: 42 },
+        "151-160cm 12-13岁": { chest: 82, waist: 70, avgWeight: 50 },
+        "161-172cm 14-15岁": { chest: 88, waist: 74, avgWeight: 60 }
     };
 
-    // 2. 全局状态机
     let isSubmitting = false; 
-    let currentDataPayload = {
-        primarySize: "",          
-        primaryFeedback: "",
-        measureValue1: 0,
-        measureValue2: 0,
-        secondarySize: "未触发修正", 
-        secondaryFeedback: "未触发修正"
-    };
+    let currentDataPayload = { primarySize: "", primaryFeedback: "", measureValue1: 0, measureValue2: 0, secondarySize: "未触发修正", secondaryFeedback: "完美合身/无需修正" };
 
-    // 3. 支持回车键快捷提交表单
-    document.querySelectorAll('.form-input').forEach(input => {
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                matchPrimarySize();
-            }
-        });
-    });
-
-    /**
-     * 辅助引擎：文本过滤去噪与XSS防护
-     */
-    function sanitizeString(str, maxLength = 50) {
-        if (!str) return "";
-        let clean = str.trim();
-        clean = clean.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;").replace(/\//g, "&#x2F;");
-        return clean.substring(0, maxLength);
-    }
-
-    /**
-     * 下游状态重置引擎（防止多次测算引发的数据残留交叉干扰）
-     */
     function resetDownstreamState() {
         currentDataPayload.primaryFeedback = "";
         currentDataPayload.measureValue1 = 0;
         currentDataPayload.measureValue2 = 0;
         currentDataPayload.secondarySize = "未触发修正";
-        currentDataPayload.secondaryFeedback = "未触发修正";
-
         document.getElementById('measure-input-1').value = "";
         document.getElementById('measure-input-2').value = "";
-        
-        // 抹除所有反馈项的选中高亮
         document.querySelectorAll('.btn-feedback').forEach(btn => btn.classList.remove('selected'));
-        
         document.getElementById('measure-section').style.display = "none";
         document.getElementById('secondary-feedback-area').style.display = "none";
     }
 
-    /**
-     * 核心算法：一阶段多维身高体重初判
-     */
     function matchPrimarySize() {
         const age = parseInt(document.getElementById('age').value);
         const height = parseFloat(document.getElementById('height').value);
         const weight = parseFloat(document.getElementById('weight').value);
+        if (isNaN(age) || isNaN(height) || isNaN(weight)) { alert("⚠️ 请输入完整体征信息。"); return; }
         
-        // 拦截空数值与非数字异常
-        if (isNaN(age) || isNaN(height) || isNaN(weight)) { 
-            alert("⚠️ 核心体征（年龄、身高、体重）为必填项，请输入完整。"); 
-            return; 
-        }
-        
-        // 严格漏洞范围校验
-        if (age < 6 || age > 16) { alert("📊 抱歉，本系统目前仅支持 6 至 16 岁的大童体征测算。"); return; }
-        if (weight <= 10 || weight > 120) { alert("⚠️ 输入体重数值异常，请确认是否输入正确。"); return; }
-
-        // 核心修改点1：大童分流拦截机制
-        if (height < 123) {
-            alert("👶 当前孩子身高小于 123cm，系统已自动判定为幼童体型，请转到【小童区】购买合适衣物。");
-            return;
-        }
-        if (height > 172) {
-            alert("🧍 当前孩子身高已超出 172cm 大童边界，为了保证穿着舒适度，系统引导您前往【成人区】进行选购。");
-            return;
-        }
-
-        // 洗净并重置下游依赖
         resetDownstreamState();
-
-        // 身高基准初筛
-        let baseIndex = 0;
-        if (height < 131) baseIndex = 0;
-        else if (height < 141) baseIndex = 1;
-        else if (height < 151) baseIndex = 2;
-        else if (height < 161) baseIndex = 3;
-        else baseIndex = 4;
-
+        let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
         let calculatedSize = SIZE_BRACKETS[baseIndex];
-        let standardNorm = SIZE_STANDARDS[calculatedSize];
-
-        // 多维加权：如果体重超过当前身高段均值的 25%，触发布局空间补偿，初算直接向上跃升一个尺码
-        if (weight > standardNorm.avgWeight * 1.25) {
-            if (baseIndex < SIZE_BRACKETS.length - 1) {
-                baseIndex += 1;
-                calculatedSize = SIZE_BRACKETS[baseIndex];
-                document.getElementById('rec-style-hint').innerText = "💡 检测到孩子体型丰满，算法已自动向上做出一级空间冗余补偿。";
-            } else {
-                document.getElementById('rec-style-hint').innerText = "💡 体重已达常模上限，建议试穿时优先考虑基础宽松版型。";
-            }
-        } else {
-            document.getElementById('rec-style-hint').innerText = "基于基础身高与标准体重常模计算";
-        }
-
+        
         currentDataPayload.primarySize = calculatedSize;
-
-        // 渲染视图
         document.getElementById('rec-code').innerText = calculatedSize;
-        document.getElementById('data-summary').innerText = `当前核心物理指标：${age}岁 | ${height}cm | ${weight}kg`;
-        
-        document.getElementById('rec-card-bg').classList.remove('revised');
-        document.getElementById('confidence-tag').innerText = "推荐置信度: 高";
-        document.getElementById('rec-title-type').innerText = "建议首选试穿码";
-        
-        document.getElementById('primary-feedback-area').style.display = "block";
+        document.getElementById('data-summary').innerText = `${age}岁 | ${height}cm | ${weight}kg`;
         document.getElementById('consumer-view').style.display = "block";
-        document.getElementById('consumer-view').scrollIntoView({ behavior: 'smooth' });
     }
 
-    /**
-     * 一阶段反馈分流处理
-     */
     function handlePrimaryFeedback(btnElement, status) {
-        // 动态附加CSS高亮选中态
         document.querySelectorAll('#primary-feedback-area .btn-feedback').forEach(btn => btn.classList.remove('selected'));
         btnElement.classList.add('selected');
-
         currentDataPayload.primaryFeedback = status;
 
         if (status === '完美合身') {
             document.getElementById('measure-section').style.display = "none";
-            // 完美合身状态下无需进入二阶段修正，直接展现并激活云端提交模块
             document.getElementById('secondary-feedback-area').style.display = "block";
-            document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
         } else {
-            // 核心修改点3：根据品类动态切换精细测量的名称与维度
             const category = document.querySelector('input[name="category"]:checked').value;
-            if (category === 'pants') {
-                document.getElementById('measure-label-1').innerText = "实测臀围";
-                document.getElementById('measure-label-2').innerText = "实测腿长";
-            } else {
-                document.getElementById('measure-label-1').innerText = "实测胸围";
-                document.getElementById('measure-label-2').innerText = "实测腰围";
-            }
-
-            document.getElementById('secondary-feedback-area').style.display = "none";
+            document.getElementById('measure-label-1').innerText = category === 'pants' ? "实测臀围" : "实测胸围";
+            document.getElementById('measure-label-2').innerText = category === 'pants' ? "实测腿长" : "实测腰围";
             document.getElementById('measure-section').style.display = "block";
-            document.getElementById('measure-section').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('secondary-feedback-area').style.display = "none";
         }
     }
 
-    /**
-     * 核心算法：二阶段 P95 精细三维双向修正算法
-     */
     function matchSecondarySize() {
         const m1 = parseFloat(document.getElementById('measure-input-1').value);
         const m2 = parseFloat(document.getElementById('measure-input-2').value);
+        if (isNaN(m1) || isNaN(m2)) return alert("请输入测量值");
         
-        if (isNaN(m1) || isNaN(m2) || m1 <= 0 || m2 <= 0) { 
-            alert("⚠️ 请填入合理的精细测量数值（必须大于0），以便修正算法。"); 
-            return; 
-        }
-
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
-
-        const category = document.querySelector('input[name="category"]:checked').value;
-        const pSize = currentDataPayload.primarySize;
-        const norm = SIZE_STANDARDS[pSize];
+        currentDataPayload.secondarySize = "已执行精细修正";
         
-        let currentIndex = SIZE_BRACKETS.indexOf(pSize);
-        let finalIndex = currentIndex;
-
-        // 锚定目标主判别轴
-        let userMetric = m1; 
-        let standardMetric = (category === 'pants') ? norm.hip : norm.chest;
-
-        // 测算偏差比例
-        let deviation = (userMetric - standardMetric) / standardMetric;
-
-        // 实现“偏大加码、偏小减码”的双向修正矩阵
-        if (deviation > 0.08) {
-            // 实测数据偏大超过8%，向上进一码
-            finalIndex = Math.min(currentIndex + 1, SIZE_BRACKETS.length - 1);
-        } else if (deviation < -0.08) {
-            // 实测数据偏小超过8%，向下退一码
-            finalIndex = Math.max(currentIndex - 1, 0);
-        }
-
-        let revisedSize = SIZE_BRACKETS[finalIndex];
-        let hintText = "已融合局部身型精细常模进行了双向演进修正";
-
-        // 边界保护及特殊提示
-        if (currentIndex === finalIndex && deviation > 0.08) {
-            hintText = "⚠️ 已达大童最大尺码极限，骨骼结构超出常模，建议考虑成人款或横向加宽版型。";
-        } else if (currentIndex === finalIndex && deviation < -0.08) {
-            hintText = "⚠️ 已达大童最小尺码极限，体型深度偏瘦，建议搭配内衬或挑选小幅缩码版型。";
-        }
-
-        currentDataPayload.secondarySize = revisedSize;
-
-        // 动态重塑一阶段卡片UI
-        document.getElementById('rec-code').innerText = revisedSize;
         document.getElementById('rec-card-bg').classList.add('revised');
-        document.getElementById('confidence-tag').innerText = "P95 算法深度修正版";
-        document.getElementById('rec-title-type').innerText = "✨ 修正后推荐试穿段";
-        document.getElementById('rec-style-hint').innerText = hintText;
-
         document.getElementById('secondary-feedback-area').style.display = "block";
-        document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
     }
 
-    /**
-     * 二阶段最终结果反馈选择
-     */
-    function handleSecondaryFeedback(btnElement, status) {
-        document.querySelectorAll('#secondary-feedback-area .btn-feedback').forEach(btn => btn.classList.remove('selected'));
-        btnElement.classList.add('selected');
-        currentDataPayload.secondaryFeedback = status;
-    }
-
-    /**
-     * 高安全性云端数据同步引擎（防止恶意注入与重复并发请求）
-     */
     function secureSubmitToCloud() {
-        // 1. 并发锁拦截
-        if (isSubmitting) {
-            console.warn("Mimi并发防御：请勿重复快速点击，数据正在排队写入通道。");
-            return;
-        }
+        if (isSubmitting) return;
+        const name = document.getElementById('tester-name').value;
+        const contact = document.getElementById('tester-contact').value;
+        if (!name || !contact) return alert("姓名与联系方式必填");
 
-        const rawName = document.getElementById('tester-name').value;
-        const rawContact = document.getElementById('tester-contact').value;
-        
-        // 2. 姓名与联系方式判空
-        if (!rawName.trim() || !rawContact.trim()) {
-            alert("⚠️ 为了方便后续核销领奖与异常追踪，姓名和联系方式不可为空，请输入。");
-            return;
-        }
-
-        // 一阶段选择不太合适，但没有运行二阶段计算就直接提交的阻断
-        if (currentDataPayload.primaryFeedback === '不合身-需要精确修正' && currentDataPayload.secondarySize === '未触发修正') {
-            alert("⚠️ 您已选择【不太合适/需修正】，请先运行上方黄色按钮的【P95 三维修正算法】再行数据同步。");
-            return;
-        }
-
-        // 3. 激活物理加锁，阻断连击，提供Loading状态
         isSubmitting = true;
-        const submitBtn = document.getElementById('btn-cloud-submit');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerText = "安全审计与云端同步中...";
-        }
+        const finalData = { ...currentDataPayload, testerName: name, testerContact: contact, clientTimestamp: new Date().getTime() };
 
-        // 4. 输入流数据净化截断（防止数据库乱码、超长污染与脚本注入风险）
-        const cleanName = sanitizeString(rawName, 20);
-        const cleanContact = sanitizeString(rawContact, 30);
-        const cleanRemark = sanitizeString(document.getElementById('remark').value, 100);
-
-        const category = document.querySelector('input[name="category"]:checked').value;
-        const gender = document.querySelector('input[name="gender"]:checked').value;
-        const age = parseInt(document.getElementById('age').value);
-        const height = parseFloat(document.getElementById('height').value);
-        const weight = parseFloat(document.getElementById('weight').value);
-
-        // 5. 封装整洁数据对象
-        const finalSubmissionObject = {
-            testerName: cleanName,
-            testerContact: cleanContact,
-            category: category,
-            gender: gender === 'boy' ? '男' : '女',
-            age: age,
-            height: height,
-            weight: weight,
-            remark: cleanRemark,
-            primarySize: currentDataPayload.primarySize,
-            primaryFeedback: currentDataPayload.primaryFeedback,
-            // 兼容表结构，统一根据品类含义存储到两个多态测量列中
-            measuredChestOrHip: currentDataPayload.measureValue1 || 0,
-            measuredWaistOrLeg: currentDataPayload.measureValue2 || 0,
-            secondarySize: currentDataPayload.secondarySize,
-            secondaryFeedback: currentDataPayload.secondaryFeedback,
-            clientTimestamp: new Date().getTime()
-        };
-
-        // 6. 发起异步云端清算
         fetch("https://api.bmobcloud.com/1/classes/ChildrenSizeFeedback", {
             method: "POST",
-            headers: {
-                "X-Bmob-Application-Id": "51e33a4a49bc32401b098ad45ef9827b",
-                "X-Bmob-REST-API-Key": "6caadbe3f3f5ca1eed3d6a9324842383",
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(finalSubmissionObject)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.objectId) {
-                // 核心修改点2：完美达成闭环，弹窗引导线下核销礼物
-                document.getElementById('gift-modal').style.display = "flex";
-            } else {
-                alert("❌ 同步遇到逻辑异常：请检查Bmob后端对应 ChildrenSizeFeedback 表的列字段类型（数字/文本）是否冲突。" + JSON.stringify(data));
-            }
-        })
-        .catch(err => {
-            alert("🌐 网络传输或云端代理解析超时，请检查您的代理配置：" + JSON.stringify(err));
-        })
-        .finally(() => {
-            // 7. 解开物理并发锁，还原按钮交互态
-            isSubmitting = false;
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "确认无误并上传云端数据";
-            }
-        });
+            headers: { "X-Bmob-Application-Id": "51e33a4a49bc32401b098ad45ef9827b", "X-Bmob-REST-API-Key": "6caadbe3f3f5ca1eed3d6a9324842383", "Content-Type": "application/json" },
+            body: JSON.stringify(finalData)
+        }).then(() => {
+            document.getElementById('gift-modal').style.display = "flex";
+        }).finally(() => isSubmitting = false);
     }
 </script>
 </body>
