@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>迪卡侬大童智能尺码助手 - 生产安全优化版</title>
+    <title>迪卡侬大童智能尺码助手 - 官方数据版</title>
     <style>
         :root {
             --decathlon-blue: #3643BA;
@@ -204,9 +204,11 @@
             padding: 15px;
             text-align: center;
             position: relative;
+            transition: var(--transition-base);
         }
         .rec-card.revised {
             background: linear-gradient(135deg, #4F46E5 0%, #312E81 100%);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4);
         }
         .confidence-badge {
             position: absolute;
@@ -272,6 +274,12 @@
             margin-top: 15px;
         }
 
+        .second-feedback-box {
+            background: #F0F4FF;
+            border: 1px dashed #c7d2fe;
+            display: none;
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -327,15 +335,15 @@
     </header>
 
     <main>
-        <div class="info-section-title">👤 基本信息登记</div>
+        <div class="info-section-title">👤 基本信息登记（选填）</div>
         <div class="form-grid-2">
             <div class="form-group">
                 <label class="form-label">姓名</label>
-                <input type="text" id="tester-name" class="input-base form-input-with-unit" placeholder="请输入姓名">
+                <input type="text" id="tester-name" class="input-base form-input-with-unit" placeholder="选填，请输入姓名">
             </div>
             <div class="form-group">
                 <label class="form-label">联系方式</label>
-                <input type="text" id="tester-contact" class="input-base form-input-with-unit" placeholder="手机或群内昵称">
+                <input type="text" id="tester-contact" class="input-base form-input-with-unit" placeholder="选填，手机或群内昵称">
             </div>
         </div>
 
@@ -374,7 +382,6 @@
         <div class="form-group">
             <label class="form-label">实测净体重</label>
             <div class="input-wrapper">
-                <!-- 限制最大150kg，500斤=250kg，超出直接拦截 -->
                 <input type="number" id="weight" class="input-base form-input-with-unit" placeholder="公斤(kg)，支持一位小数" step="0.1" min="10" max="150">
                 <span class="input-unit">kg</span>
             </div>
@@ -427,6 +434,14 @@
                 <button type="button" id="btn-secondary-calc" class="btn-base btn-warning" onclick="matchSecondarySize()">运行 P95 三维修正算法</button>
             </div>
 
+            <div class="feedback-box second-feedback-box" id="second-feedback-area">
+                <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">✨ 阶段二：精细修正后试穿反馈</div>
+                <div class="radio-tile-group">
+                    <button class="btn-feedback" id="btn-second-fit" onclick="handleSecondFeedback(this, '修正后合身')">✅ 修正后合身</button>
+                    <button class="btn-feedback" id="btn-second-unfit" onclick="handleSecondFeedback(this, '依旧不合身')">❌ 依旧不合身</button>
+                </div>
+            </div>
+
             <div class="feedback-box" id="secondary-feedback-area" style="display:none;">
                 <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">🚀 数据核对与最终上传</div>
                 <button type="button" id="btn-cloud-submit" class="btn-base btn-purple" onclick="secureSubmitToCloud()">确认无误并上传云端数据</button>
@@ -446,13 +461,23 @@
 </div>
 
 <script>
+    // 完整导入官方男/女孩体型数据
     const SIZE_BRACKETS = ["123-130cm 7-8岁", "131-140cm 8-9岁", "141-150cm 10-11岁", "151-160cm 12-13岁", "161-172cm 14-15岁"];
-    const SIZE_STANDARDS = {
-        "123-130cm 7-8岁": { chest: 64, waist: 58, hip: 68, leg: 56, avgWeight: 27 },
-        "131-140cm 8-9岁": { chest: 70, waist: 62, hip: 74, leg: 62, avgWeight: 34 },
-        "141-150cm 10-11岁": { chest: 76, waist: 66, hip: 80, leg: 68, avgWeight: 42 },
-        "151-160cm 12-13岁": { chest: 82, waist: 70, hip: 86, leg: 74, avgWeight: 50 },
-        "161-172cm 14-15岁": { chest: 88, waist: 74, hip: 92, leg: 80, avgWeight: 60 }
+    // 男孩体型标准数据
+    const BOY_STANDARDS = {
+        "123-130cm 7-8岁": { chest: 63.74, waist: 57.99, hip: 67.55, leg: 20.39, avgWeight: 26.67 },
+        "131-140cm 8-9岁": { chest: 69.00, waist: 63.06, hip: 73.01, leg: 21.32, avgWeight: 32.87 },
+        "141-150cm 10-11岁": { chest: 75.53, waist: 69.01, hip: 79.69, leg: 23.07, avgWeight: 42.23 },
+        "151-160cm 12-13岁": { chest: 82.72, waist: 74.28, hip: 86.34, leg: 25.73, avgWeight: 52.59 },
+        "161-172cm 14-15岁": { chest: 87.81, waist: 77.22, hip: 92.27, leg: 27.74, avgWeight: 62.53 }
+    };
+    // 女孩体型标准数据
+    const GIRL_STANDARDS = {
+        "123-130cm 7-8岁": { chest: 63.45, waist: 57.47, hip: 67.17, leg: 18.57, avgWeight: 26.07 },
+        "131-140cm 8-9岁": { chest: 68.46, waist: 61.67, hip: 72.10, leg: 19.57, avgWeight: 31.54 },
+        "141-150cm 10-11岁": { chest: 78.07, waist: 68.18, hip: 83.83, leg: 22.18, avgWeight: 43.31 },
+        "151-160cm 12-13岁": { chest: 82.99, waist: 71.86, hip: 89.65, leg: 23.66, avgWeight: 50.64 },
+        "161-172cm 14-15岁": { chest: 85.94, waist: 74.65, hip: 93.75, leg: 24.77, avgWeight: 56.62 }
     };
 
     let isSubmitting = false;
@@ -482,12 +507,54 @@
         currentDataPayload.measureValue2 = 0;
         currentDataPayload.secondarySize = "未触发修正";
         currentDataPayload.secondaryFeedback = "完美合身/无需修正";
+
         document.getElementById('measure-input-1').value = "";
         document.getElementById('measure-input-2').value = "";
+
         document.querySelectorAll('.btn-feedback').forEach(btn => btn.classList.remove('selected'));
+
         document.getElementById('measure-section').style.display = "none";
+        document.getElementById('second-feedback-area').style.display = "none";
         document.getElementById('secondary-feedback-area').style.display = "none";
         document.getElementById('rec-card-bg').classList.remove('revised');
+
+        document.getElementById('rec-title-type').innerText = "建议首选试穿码";
+        document.getElementById('confidence-tag').innerText = "推荐置信度: 高";
+    }
+
+    // 核心：根据性别、身高获取基础尺码
+    function getBaseSize(gender, height) {
+        let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
+        return SIZE_BRACKETS[baseIndex];
+    }
+
+    // 核心：根据性别、身高、围度精准匹配尺码
+    function getPreciseSize(gender, height, category, measure1, measure2) {
+        const baseSize = getBaseSize(gender, height);
+        const baseIndex = SIZE_BRACKETS.indexOf(baseSize);
+        const standard = gender === 'boy' ? BOY_STANDARDS[baseSize] : GIRL_STANDARDS[baseSize];
+        
+        let adjustIndex = 0;
+        // 上衣：胸围匹配
+        if (category === "tshirt" || category === "jacket") {
+            const chestDiff = measure1 - standard.chest;
+            if (chestDiff > 6) adjustIndex = 1;
+            if (chestDiff < -4) adjustIndex = -1;
+        } 
+        // 长裤：臀围+腿长匹配
+        else {
+            const hipDiff = measure1 - standard.hip;
+            const legDiff = measure2 - standard.leg;
+            if (hipDiff > 6 || legDiff > 1.5) adjustIndex = 1;
+            if (hipDiff < -4 || legDiff < -1) adjustIndex = -1;
+        }
+
+        // 边界保护，不超出尺码范围
+        let finalIdx = baseIndex + adjustIndex;
+        if (finalIdx < 0) finalIdx = 0;
+        if (finalIdx >= SIZE_BRACKETS.length) finalIdx = SIZE_BRACKETS.length - 1;
+        
+        return SIZE_BRACKETS[finalIdx];
     }
 
     function matchPrimarySize() {
@@ -496,18 +563,17 @@
             const age = parseInt(document.getElementById('age').value);
             const height = parseFloat(document.getElementById('height').value);
             const weight = parseFloat(document.getElementById('weight').value);
+            const gender = document.querySelector('input[name="gender"]:checked').value;
 
-            // 年龄校验
+            // 基础校验
             if (isNaN(age) || age < 6 || age > 16) {
                 alert("⚠️ 年龄仅支持6~16岁，请填写正确年龄");
                 return;
             }
-            // 身高校验
             if (isNaN(height) || height < 123 || height > 172) {
                 alert("⚠️ 身高范围123~172cm，不在区间请前往小童/成人区");
                 return;
             }
-            // 体重强阈值拦截（重点修复）
             if (isNaN(weight)) {
                 alert("⚠️ 请填写净体重");
                 return;
@@ -517,17 +583,17 @@
                 return;
             }
             if (weight > 150) {
-                alert(`⚠️ 体重最大仅支持150kg（300斤），${weight}kg超出范围，无法计算尺码`);
+                alert(`⚠️ 体重最大仅支持150kg（300斤），${weight}kg超出范围，无法计算`);
                 return;
             }
 
             resetDownstreamState();
-            let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
-            let calculatedSize = SIZE_BRACKETS[baseIndex];
+            // 按性别+身高获取基础尺码
+            const calculatedSize = getBaseSize(gender, height);
 
             currentDataPayload.primarySize = calculatedSize;
             document.getElementById('rec-code').innerText = calculatedSize;
-            document.getElementById('data-summary').innerText = `${age}岁 | ${height}cm | ${weight}kg`;
+            document.getElementById('data-summary').innerText = `${age}岁 | ${height}cm | ${weight}kg | ${gender === 'boy' ? '男童' : '女童'}`;
             document.getElementById('consumer-view').style.display = "block";
         }, 300);
     }
@@ -538,15 +604,15 @@
         currentDataPayload.primaryFeedback = status;
 
         if (status === '完美合身') {
-            currentDataPayload.secondaryFeedback = "完美合身/无需修正";
             document.getElementById('measure-section').style.display = "none";
+            document.getElementById('second-feedback-area').style.display = "none";
             document.getElementById('secondary-feedback-area').style.display = "block";
-            document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
         } else {
             const category = document.querySelector('input[name="category"]:checked').value;
             document.getElementById('measure-label-1').innerText = category === 'pants' ? "实测臀围" : "实测胸围";
             document.getElementById('measure-label-2').innerText = category === 'pants' ? "实测腿长" : "实测腰围";
             document.getElementById('measure-section').style.display = "block";
+            document.getElementById('second-feedback-area').style.display = "none";
             document.getElementById('secondary-feedback-area').style.display = "none";
             document.getElementById('measure-section').scrollIntoView({ behavior: 'smooth' });
         }
@@ -555,30 +621,54 @@
     function matchSecondarySize() {
         const m1 = parseFloat(document.getElementById('measure-input-1').value);
         const m2 = parseFloat(document.getElementById('measure-input-2').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const gender = document.querySelector('input[name="gender"]:checked').value;
+        const category = document.querySelector('input[name="category"]:checked').value;
+
+        // 围度校验
         if (isNaN(m1) || m1 < 30 || m1 > 150) {
-            alert("请填写30~150cm之间的围度数值");
+            alert("请填写30~150cm有效围度");
             return;
         }
         if (isNaN(m2) || m2 < 30 || m2 > 150) {
-            alert("请填写30~150cm之间的围度数值");
+            alert("请填写30~150cm有效围度");
             return;
         }
 
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
         currentDataPayload.secondarySize = "已执行精细修正";
-        currentDataPayload.secondaryFeedback = "修正后确认";
 
-        document.getElementById('rec-card-bg').classList.add('revised');
+        // 按性别+品类+围度精准匹配尺码
+        const newFixSize = getPreciseSize(gender, height, category, m1, m2);
+
+        // 更新尺码文字
+        document.getElementById('rec-code').innerText = newFixSize;
+        // 切换紫色修正卡片样式
+        const recCard = document.getElementById('rec-card-bg');
+        recCard.classList.add('revised');
+        document.getElementById('rec-title-type').innerText = "精细修正后推荐尺码";
+        document.getElementById('confidence-tag').innerText = "精细修正版";
+
+        // 弹出二层反馈框
+        document.getElementById('second-feedback-area').style.display = "block";
+        document.getElementById('secondary-feedback-area').style.display = "none";
+        document.getElementById('second-feedback-area').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function handleSecondFeedback(btnElement, status) {
+        document.querySelectorAll('#second-feedback-area .btn-feedback').forEach(btn => btn.classList.remove('selected'));
+        btnElement.classList.add('selected');
+        currentDataPayload.secondaryFeedback = status;
         document.getElementById('secondary-feedback-area').style.display = "block";
         document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
     }
 
+    // 姓名、联系方式非必填，无空校验
     function secureSubmitToCloud() {
         if (isSubmitting) return;
         const name = document.getElementById('tester-name').value.trim();
         const contact = document.getElementById('tester-contact').value.trim();
-        if (!name || !contact) return alert("姓名与联系方式必填");
 
         isSubmitting = true;
         const finalData = {
@@ -600,17 +690,17 @@
             },
             body: JSON.stringify(finalData)
         })
-            .then(res => {
-                if (!res.ok) throw new Error("接口请求失败");
-                document.getElementById('gift-modal').style.display = "flex";
-            })
-            .catch(err => {
-                console.error("提交失败：", err);
-                alert("数据上传失败，请检查网络后重试！");
-            })
-            .finally(() => {
-                isSubmitting = false;
-            });
+        .then(res => {
+            if (!res.ok) throw new Error("接口异常");
+            document.getElementById('gift-modal').style.display = "flex";
+        })
+        .catch(err => {
+            alert("数据上传失败，请检查网络后重试");
+            console.error(err);
+        })
+        .finally(() => {
+            isSubmitting = false;
+        });
     }
 </script>
 </body>
