@@ -71,7 +71,7 @@
         .btn-feedback.selected { background: var(--decathlon-blue); border-color: var(--decathlon-blue); color: white; }
 
         .measure-section { display: none; background: #FFFBF0; border: 1px solid #FFE0B2; border-radius: 12px; padding: 12px; margin-top: 15px; }
-        
+
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(11, 14, 36, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); padding: 20px; }
         .modal-container { background: white; border-radius: 20px; width: 100%; max-width: 340px; padding: 30px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .modal-title { font-size: 20px; font-weight: 800; color: var(--decathlon-blue); margin-bottom: 8px; }
@@ -198,11 +198,11 @@
 
     const SIZE_BRACKETS = ["123-130cm 7-8岁", "131-140cm 8-9岁", "141-150cm 10-11岁", "151-160cm 12-13岁", "161-172cm 14-15岁"];
     const SIZE_STANDARDS = {
-        "123-130cm 7-8岁": { chest: 64, waist: 58, avgWeight: 27 },
-        "131-140cm 8-9岁": { chest: 70, waist: 62, avgWeight: 34 },
-        "141-150cm 10-11岁": { chest: 76, waist: 66, avgWeight: 42 },
-        "151-160cm 12-13岁": { chest: 82, waist: 70, avgWeight: 50 },
-        "161-172cm 14-15岁": { chest: 88, waist: 74, avgWeight: 60 }
+        "123-130cm 7-8岁": { chest: 64, waist: 58, hip: 68, leg: 56, avgWeight: 27 },
+        "131-140cm 8-9岁": { chest: 70, waist: 62, hip: 74, leg: 62, avgWeight: 34 },
+        "141-150cm 10-11岁": { chest: 76, waist: 66, hip: 80, leg: 68, avgWeight: 42 },
+        "151-160cm 12-13岁": { chest: 82, waist: 70, hip: 86, leg: 74, avgWeight: 50 },
+        "161-172cm 14-15岁": { chest: 88, waist: 74, hip: 92, leg: 80, avgWeight: 60 }
     };
 
     let isSubmitting = false; 
@@ -213,6 +213,7 @@
         currentDataPayload.measureValue1 = 0;
         currentDataPayload.measureValue2 = 0;
         currentDataPayload.secondarySize = "未触发修正";
+        currentDataPayload.secondaryFeedback = "完美合身/无需修正";
         document.getElementById('measure-input-1').value = "";
         document.getElementById('measure-input-2').value = "";
         document.querySelectorAll('.btn-feedback').forEach(btn => btn.classList.remove('selected'));
@@ -225,6 +226,8 @@
         const height = parseFloat(document.getElementById('height').value);
         const weight = parseFloat(document.getElementById('weight').value);
         if (isNaN(age) || isNaN(height) || isNaN(weight)) { alert("⚠️ 请输入完整体征信息。"); return; }
+        if (height < 123) { alert("👶 当前身高小于 123cm，请转到【小童区】。"); return; }
+        if (height > 172) { alert("🧍 当前身高大于 172cm，请转到【成人区】。"); return; }
         
         resetDownstreamState();
         let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
@@ -242,14 +245,17 @@
         currentDataPayload.primaryFeedback = status;
 
         if (status === '完美合身') {
+            currentDataPayload.secondaryFeedback = "完美合身/无需修正";
             document.getElementById('measure-section').style.display = "none";
             document.getElementById('secondary-feedback-area').style.display = "block";
+            document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
         } else {
             const category = document.querySelector('input[name="category"]:checked').value;
             document.getElementById('measure-label-1').innerText = category === 'pants' ? "实测臀围" : "实测胸围";
             document.getElementById('measure-label-2').innerText = category === 'pants' ? "实测腿长" : "实测腰围";
             document.getElementById('measure-section').style.display = "block";
             document.getElementById('secondary-feedback-area').style.display = "none";
+            document.getElementById('measure-section').scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -261,9 +267,11 @@
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
         currentDataPayload.secondarySize = "已执行精细修正";
+        currentDataPayload.secondaryFeedback = "修正后确认";
         
         document.getElementById('rec-card-bg').classList.add('revised');
         document.getElementById('secondary-feedback-area').style.display = "block";
+        document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
     }
 
     function secureSubmitToCloud() {
