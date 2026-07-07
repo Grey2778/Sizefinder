@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>迪卡侬大童智能尺码助手 - 生产安全版</title>
-    <script src="https://cdn.jsdelivr.net/npm/hydrogen-js-sdk@2.2.3/dist/Bmob-2.2.3.min.js"></script>
+    <title>迪卡侬大童智能尺码助手 - 生产安全优化版</title>
     <style>
         :root {
             --decathlon-blue: #3643BA;
@@ -17,70 +16,310 @@
             --error-red: #D32F2F;
             --success-green: #2E7D32;
             --purple-deep: #6366F1;
+            --border-base: #E2E8F0;
+            --transition-base: all 0.2s ease;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        
-        body { 
-            background-color: var(--light-bg); 
-            color: var(--text-main); 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start; 
-            min-height: 100vh; 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
             padding: 15px;
             min-width: 320px;
         }
-        
-        .container { background: var(--container-bg); width: 100%; max-width: 450px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 20px; position: relative; }
-        header { text-align: center; margin-bottom: 20px; }
-        .logo { background-color: var(--decathlon-blue); color: #fff; display: inline-block; padding: 6px 16px; font-weight: 900; font-style: italic; font-size: 18px; letter-spacing: 1px; border-radius: 4px; margin-bottom: 8px; user-select: none; }
-        h1 { font-size: 18px; color: var(--text-main); font-weight: 700; }
-        .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-        .info-section-title { font-size: 13px; font-weight: 700; color: var(--decathlon-blue); margin: 15px 0 10px 0; padding-bottom: 4px; border-bottom: 1px solid #E2E8F0; }
-        .form-group { margin-bottom: 12px; }
-        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-main); }
-        
-        .radio-tile-group { display: flex; gap: 8px; }
-        .radio-tile-label { position: relative; flex: 1; }
-        .radio-tile-label input { position: absolute; opacity: 0; height: 0; width: 0; }
-        .radio-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 4px; border: 2px solid #E2E8F0; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 500; text-align: center; transition: all 0.2s ease; }
-        .radio-tile-label input:checked + .radio-tile { border-color: var(--decathlon-blue); background-color: #F0F4FF; color: var(--decathlon-blue); font-weight: 600; }
-        
-        .input-wrapper { position: relative; display: flex; align-items: center; }
-        .form-input { width: 100%; padding: 10px 12px; border: 2px solid #E2E8F0; border-radius: 10px; font-size: 13.5px; outline: none; transition: border-color 0.2s ease; }
-        .form-input-with-unit { padding-right: 40px; }
-        .form-input:focus { border-color: var(--decathlon-blue); }
-        .input-unit { position: absolute; right: 14px; font-size: 12px; color: var(--text-muted); pointer-events: none; }
-        
-        .btn-calc { width: 100%; background-color: var(--decathlon-blue); color: white; border: none; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
-        .btn-calc:disabled { opacity: 0.6; cursor: not-allowed; }
+        .card-wrap {
+            background: var(--container-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+        }
+        .btn-base {
+            width: 100%;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition-base);
+            margin-top: 8px;
+        }
+        .btn-base:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .input-base {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border-base);
+            border-radius: 10px;
+            font-size: 13.5px;
+            outline: none;
+            transition: var(--transition-base);
+        }
+        .input-base:focus {
+            border-color: var(--decathlon-blue);
+        }
 
-        .result-view { display: none; margin-top: 20px; border-top: 2px dashed #E2E8F0; padding-top: 15px; }
-        .rec-card { background: linear-gradient(135deg, #3643BA 0%, #1A2580 100%); color: white; border-radius: 14px; padding: 15px; text-align: center; position: relative; }
-        .rec-card.revised { background: linear-gradient(135deg, #4F46E5 0%, #312E81 100%); }
-        .confidence-badge { position: absolute; top: 10px; right: 10px; font-size: 9px; padding: 3px 6px; border-radius: 20px; background-color: rgba(122,255,166,0.2); color: #7AFFA6; }
-        .rec-code { font-size: 22px; font-weight: 800; margin: 8px 0; letter-spacing: 0.5px; }
-        .rec-style-hint { font-size: 11px; opacity: 0.9; margin-top: 4px; padding: 4px; min-height: 20px; }
-        .data-summary { font-size: 12px; color: var(--text-muted); text-align: center; margin: 10px 0; }
+        .container {
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            background-color: var(--decathlon-blue);
+            color: #fff;
+            display: inline-block;
+            padding: 6px 16px;
+            font-weight: 900;
+            font-style: italic;
+            font-size: 18px;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            user-select: none;
+        }
+        h1 {
+            font-size: 18px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
 
-        .feedback-box { background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 12px; padding: 12px; text-align: center; margin-top: 12px; }
-        .btn-feedback { flex: 1; background: white; border: 1px solid #CBD5E1; padding: 10px 8px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
-        .btn-feedback.selected { background: var(--decathlon-blue); border-color: var(--decathlon-blue); color: white; }
+        .info-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--decathlon-blue);
+            margin: 15px 0 10px 0;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-base);
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
 
-        .measure-section { display: none; background: #FFFBF0; border: 1px solid #FFE0B2; border-radius: 12px; padding: 12px; margin-top: 15px; }
+        .radio-tile-group {
+            display: flex;
+            gap: 8px;
+        }
+        .radio-tile-label {
+            position: relative;
+            flex: 1;
+        }
+        .radio-tile-label input {
+            position: absolute;
+            opacity: 0;
+            height: 0;
+            width: 0;
+        }
+        .radio-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 4px;
+            border: 2px solid var(--border-base);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            transition: var(--transition-base);
+        }
+        .radio-tile-label input:checked + .radio-tile {
+            border-color: var(--decathlon-blue);
+            background-color: #F0F4FF;
+            color: var(--decathlon-blue);
+            font-weight: 600;
+        }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(11, 14, 36, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); padding: 20px; }
-        .modal-container { background: white; border-radius: 20px; width: 100%; max-width: 340px; padding: 30px 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .modal-title { font-size: 20px; font-weight: 800; color: var(--decathlon-blue); margin-bottom: 8px; }
-        .modal-highlight { font-size: 16px; color: #E65100; font-weight: bold; margin: 24px 0; padding: 15px; background: #FFF9E6; border: 1px dashed #FFE0B2; border-radius: 10px; line-height: 1.4; }
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .form-input-with-unit {
+            padding-right: 40px;
+        }
+        .input-unit {
+            position: absolute;
+            right: 14px;
+            font-size: 12px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .btn-calc {
+            background-color: var(--decathlon-blue);
+        }
+        .btn-warning {
+            background: var(--warning-orange);
+        }
+        .btn-purple {
+            background: var(--purple-deep);
+        }
+
+        .result-view {
+            display: none;
+            margin-top: 20px;
+            border-top: 2px dashed var(--border-base);
+            padding-top: 15px;
+        }
+        .rec-card {
+            background: linear-gradient(135deg, #3643BA 0%, #1A2580 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+        }
+        .rec-card.revised {
+            background: linear-gradient(135deg, #4F46E5 0%, #312E81 100%);
+        }
+        .confidence-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 9px;
+            padding: 3px 6px;
+            border-radius: 20px;
+            background-color: rgba(122, 255, 166, 0.2);
+            color: #7AFFA6;
+        }
+        .rec-code {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 8px 0;
+            letter-spacing: 0.5px;
+        }
+        .rec-style-hint {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-top: 4px;
+            padding: 4px;
+            min-height: 20px;
+        }
+        .data-summary {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .feedback-box {
+            background: #F8FAFC;
+            border: 1px dashed #CBD5E1;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            margin-top: 12px;
+        }
+        .btn-feedback {
+            flex: 1;
+            background: white;
+            border: 1px solid #CBD5E1;
+            padding: 10px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition-base);
+        }
+        .btn-feedback.selected {
+            background: var(--decathlon-blue);
+            border-color: var(--decathlon-blue);
+            color: white;
+        }
+
+        .measure-section {
+            display: none;
+            background: #FFFBF0;
+            border: 1px solid #FFE0B2;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(11, 14, 36, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            padding: 20px;
+        }
+        .modal-container {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 340px;
+            padding: 30px 24px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--decathlon-blue);
+            margin-bottom: 8px;
+        }
+        .modal-highlight {
+            font-size: 16px;
+            color: #E65100;
+            font-weight: bold;
+            margin: 24px 0;
+            padding: 15px;
+            background: #FFF9E6;
+            border: 1px dashed #FFE0B2;
+            border-radius: 10px;
+            line-height: 1.4;
+        }
+        .modal-close {
+            margin-top:10px;
+            background:#ccc;
+        }
     </style>
 </head>
 <body>
-
-<div class="container">
+<div class="container card-wrap">
     <header>
         <div class="logo">DECATHLON</div>
         <h1>大童智能尺码实验系统</h1>
@@ -92,11 +331,11 @@
         <div class="form-grid-2">
             <div class="form-group">
                 <label class="form-label">姓名</label>
-                <input type="text" id="tester-name" class="form-input" placeholder="请输入姓名">
+                <input type="text" id="tester-name" class="input-base form-input-with-unit" placeholder="请输入姓名">
             </div>
             <div class="form-group">
                 <label class="form-label">联系方式</label>
-                <input type="text" id="tester-contact" class="form-input" placeholder="手机或群内昵称">
+                <input type="text" id="tester-contact" class="input-base form-input-with-unit" placeholder="手机或群内昵称">
             </div>
         </div>
 
@@ -120,14 +359,14 @@
             <div class="form-group">
                 <label class="form-label">名义年龄</label>
                 <div class="input-wrapper">
-                    <input type="number" id="age" class="form-input form-input-with-unit" placeholder="6-16" min="6" max="16">
+                    <input type="number" id="age" class="input-base form-input-with-unit" placeholder="6-16" min="6" max="16">
                     <span class="input-unit">岁</span>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">实测裸脚身高</label>
                 <div class="input-wrapper">
-                    <input type="number" id="height" class="form-input form-input-with-unit" placeholder="厘米(cm)" min="50" max="220">
+                    <input type="number" id="height" class="input-base form-input-with-unit" placeholder="厘米(cm)" min="123" max="172">
                     <span class="input-unit">cm</span>
                 </div>
             </div>
@@ -135,16 +374,20 @@
         <div class="form-group">
             <label class="form-label">实测净体重</label>
             <div class="input-wrapper">
-                <input type="number" id="weight" class="form-input form-input-with-unit" placeholder="公斤(kg)，支持一位小数" step="0.1" min="10" max="150">
+                <!-- 限制最大150kg，500斤=250kg，超出直接拦截 -->
+                <input type="number" id="weight" class="input-base form-input-with-unit" placeholder="公斤(kg)，支持一位小数" step="0.1" min="10" max="150">
                 <span class="input-unit">kg</span>
             </div>
         </div>
         <div class="form-group">
             <label class="form-label">备注补充 (选填)</label>
-            <input type="text" id="remark" class="form-input" placeholder="例如：骨架偏大、偏好宽松">
+            <input type="text" id="remark" class="input-base form-input-with-unit" placeholder="例如：骨架偏大、偏好宽松">
         </div>
 
-        <button type="button" id="btn-primary-calc" class="btn-calc" onclick="matchPrimarySize()">实时计算试穿尺码</button>
+        <div class="form-grid-2" style="gap:8px;">
+            <button type="button" id="btn-primary-calc" class="btn-base btn-calc" onclick="matchPrimarySize()">实时计算试穿尺码</button>
+            <button type="button" id="btn-reset-all" class="btn-base modal-close" onclick="fullResetAll()">清空全部表单</button>
+        </div>
 
         <div class="result-view" id="consumer-view">
             <div class="rec-card" id="rec-card-bg">
@@ -166,15 +409,27 @@
             <div class="measure-section" id="measure-section">
                 <div style="font-size:12px; font-weight:700; color:#E65100; margin-bottom:8px;">📐 请使用软尺测量以下精细数据以修正算法</div>
                 <div class="form-grid-2">
-                    <div class="form-group"><label class="form-label" id="measure-label-1">实测胸围</label><div class="input-wrapper"><input type="number" id="measure-input-1" class="form-input form-input-with-unit" placeholder="cm" min="30" max="150"><span class="input-unit">cm</span></div></div>
-                    <div class="form-group"><label class="form-label" id="measure-label-2">实测腰围</label><div class="input-wrapper"><input type="number" id="measure-input-2" class="form-input form-input-with-unit" placeholder="cm" min="30" max="150"><span class="input-unit">cm</span></div></div>
+                    <div class="form-group">
+                        <label class="form-label" id="measure-label-1">实测胸围</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="measure-input-1" class="input-base form-input-with-unit" placeholder="cm" min="30" max="150">
+                            <span class="input-unit">cm</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="measure-label-2">实测腰围</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="measure-input-2" class="input-base form-input-with-unit" placeholder="cm" min="30" max="150">
+                            <span class="input-unit">cm</span>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" id="btn-secondary-calc" class="btn-calc" style="background:var(--warning-orange);" onclick="matchSecondarySize()">运行 P95 三维修正算法</button>
+                <button type="button" id="btn-secondary-calc" class="btn-base btn-warning" onclick="matchSecondarySize()">运行 P95 三维修正算法</button>
             </div>
 
             <div class="feedback-box" id="secondary-feedback-area" style="display:none;">
                 <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">🚀 数据核对与最终上传</div>
-                <button type="button" id="btn-cloud-submit" class="btn-calc" style="background:var(--purple-deep);" onclick="secureSubmitToCloud()">确认无误并上传云端数据</button>
+                <button type="button" id="btn-cloud-submit" class="btn-base btn-purple" onclick="secureSubmitToCloud()">确认无误并上传云端数据</button>
             </div>
         </div>
     </main>
@@ -185,17 +440,12 @@
         <div class="modal-title">🎉 感谢您的真实反馈</div>
         <div style="font-size: 13px; color: var(--text-muted);">数据已成功建立安全物理存档</div>
         <div class="modal-highlight">📸 请凭此截图到前台找工作人员领取小礼物</div>
-        <button class="btn-calc" onclick="location.reload()">结束测试并重置系统</button>
+        <button class="btn-base btn-calc" onclick="location.reload()">结束测试并重置系统</button>
+        <button class="btn-base modal-close" onclick="closeModal()">关闭弹窗继续填写</button>
     </div>
 </div>
 
 <script>
-    try {
-        Bmob.initialize("51e33a4a49bc32401b098ad45ef9827b", "6caadbe3f3f5ca1eed3d6a9324842383");
-    } catch (e) {
-        console.warn("Mimi外部安全提示：云端SDK初始化受阻。", e);
-    }
-
     const SIZE_BRACKETS = ["123-130cm 7-8岁", "131-140cm 8-9岁", "141-150cm 10-11岁", "151-160cm 12-13岁", "161-172cm 14-15岁"];
     const SIZE_STANDARDS = {
         "123-130cm 7-8岁": { chest: 64, waist: 58, hip: 68, leg: 56, avgWeight: 27 },
@@ -205,8 +455,26 @@
         "161-172cm 14-15岁": { chest: 88, waist: 74, hip: 92, leg: 80, avgWeight: 60 }
     };
 
-    let isSubmitting = false; 
-    let currentDataPayload = { primarySize: "", primaryFeedback: "", measureValue1: 0, measureValue2: 0, secondarySize: "未触发修正", secondaryFeedback: "完美合身/无需修正" };
+    let isSubmitting = false;
+    let calcTimer = null;
+    let currentDataPayload = {
+        primarySize: "",
+        primaryFeedback: "",
+        measureValue1: 0,
+        measureValue2: 0,
+        secondarySize: "未触发修正",
+        secondaryFeedback: "完美合身/无需修正"
+    };
+
+    function closeModal() {
+        document.getElementById('gift-modal').style.display = "none";
+    }
+
+    function fullResetAll() {
+        document.querySelectorAll('.input-base').forEach(input => input.value = "");
+        resetDownstreamState();
+        document.getElementById('consumer-view').style.display = "none";
+    }
 
     function resetDownstreamState() {
         currentDataPayload.primaryFeedback = "";
@@ -219,24 +487,49 @@
         document.querySelectorAll('.btn-feedback').forEach(btn => btn.classList.remove('selected'));
         document.getElementById('measure-section').style.display = "none";
         document.getElementById('secondary-feedback-area').style.display = "none";
+        document.getElementById('rec-card-bg').classList.remove('revised');
     }
 
     function matchPrimarySize() {
-        const age = parseInt(document.getElementById('age').value);
-        const height = parseFloat(document.getElementById('height').value);
-        const weight = parseFloat(document.getElementById('weight').value);
-        if (isNaN(age) || isNaN(height) || isNaN(weight)) { alert("⚠️ 请输入完整体征信息。"); return; }
-        if (height < 123) { alert("👶 当前身高小于 123cm，请转到【小童区】。"); return; }
-        if (height > 172) { alert("🧍 当前身高大于 172cm，请转到【成人区】。"); return; }
-        
-        resetDownstreamState();
-        let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
-        let calculatedSize = SIZE_BRACKETS[baseIndex];
-        
-        currentDataPayload.primarySize = calculatedSize;
-        document.getElementById('rec-code').innerText = calculatedSize;
-        document.getElementById('data-summary').innerText = `${age}岁 | ${height}cm | ${weight}kg`;
-        document.getElementById('consumer-view').style.display = "block";
+        clearTimeout(calcTimer);
+        calcTimer = setTimeout(() => {
+            const age = parseInt(document.getElementById('age').value);
+            const height = parseFloat(document.getElementById('height').value);
+            const weight = parseFloat(document.getElementById('weight').value);
+
+            // 年龄校验
+            if (isNaN(age) || age < 6 || age > 16) {
+                alert("⚠️ 年龄仅支持6~16岁，请填写正确年龄");
+                return;
+            }
+            // 身高校验
+            if (isNaN(height) || height < 123 || height > 172) {
+                alert("⚠️ 身高范围123~172cm，不在区间请前往小童/成人区");
+                return;
+            }
+            // 体重强阈值拦截（重点修复）
+            if (isNaN(weight)) {
+                alert("⚠️ 请填写净体重");
+                return;
+            }
+            if (weight < 10) {
+                alert("⚠️ 体重不能低于10kg");
+                return;
+            }
+            if (weight > 150) {
+                alert(`⚠️ 体重最大仅支持150kg（300斤），${weight}kg超出范围，无法计算尺码`);
+                return;
+            }
+
+            resetDownstreamState();
+            let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
+            let calculatedSize = SIZE_BRACKETS[baseIndex];
+
+            currentDataPayload.primarySize = calculatedSize;
+            document.getElementById('rec-code').innerText = calculatedSize;
+            document.getElementById('data-summary').innerText = `${age}岁 | ${height}cm | ${weight}kg`;
+            document.getElementById('consumer-view').style.display = "block";
+        }, 300);
     }
 
     function handlePrimaryFeedback(btnElement, status) {
@@ -262,13 +555,20 @@
     function matchSecondarySize() {
         const m1 = parseFloat(document.getElementById('measure-input-1').value);
         const m2 = parseFloat(document.getElementById('measure-input-2').value);
-        if (isNaN(m1) || isNaN(m2)) return alert("请输入测量值");
-        
+        if (isNaN(m1) || m1 < 30 || m1 > 150) {
+            alert("请填写30~150cm之间的围度数值");
+            return;
+        }
+        if (isNaN(m2) || m2 < 30 || m2 > 150) {
+            alert("请填写30~150cm之间的围度数值");
+            return;
+        }
+
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
         currentDataPayload.secondarySize = "已执行精细修正";
         currentDataPayload.secondaryFeedback = "修正后确认";
-        
+
         document.getElementById('rec-card-bg').classList.add('revised');
         document.getElementById('secondary-feedback-area').style.display = "block";
         document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
@@ -276,20 +576,41 @@
 
     function secureSubmitToCloud() {
         if (isSubmitting) return;
-        const name = document.getElementById('tester-name').value;
-        const contact = document.getElementById('tester-contact').value;
+        const name = document.getElementById('tester-name').value.trim();
+        const contact = document.getElementById('tester-contact').value.trim();
         if (!name || !contact) return alert("姓名与联系方式必填");
 
         isSubmitting = true;
-        const finalData = { ...currentDataPayload, testerName: name, testerContact: contact, clientTimestamp: new Date().getTime() };
+        const finalData = {
+            ...currentDataPayload,
+            testerName: name,
+            testerContact: contact,
+            clientTimestamp: new Date().getTime()
+        };
+
+        const appId = "51e33a4a49bc32401b098ad45ef9827b";
+        const apiKey = "6caadbe3f3f5ca1eed3d6a9324842383";
 
         fetch("https://api.bmobcloud.com/1/classes/ChildrenSizeFeedback", {
             method: "POST",
-            headers: { "X-Bmob-Application-Id": "51e33a4a49bc32401b098ad45ef9827b", "X-Bmob-REST-API-Key": "6caadbe3f3f5ca1eed3d6a9324842383", "Content-Type": "application/json" },
+            headers: {
+                "X-Bmob-Application-Id": appId,
+                "X-Bmob-REST-API-Key": apiKey,
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(finalData)
-        }).then(() => {
-            document.getElementById('gift-modal').style.display = "flex";
-        }).finally(() => isSubmitting = false);
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("接口请求失败");
+                document.getElementById('gift-modal').style.display = "flex";
+            })
+            .catch(err => {
+                console.error("提交失败：", err);
+                alert("数据上传失败，请检查网络后重试！");
+            })
+            .finally(() => {
+                isSubmitting = false;
+            });
     }
 </script>
 </body>
