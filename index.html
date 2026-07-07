@@ -257,7 +257,7 @@
             background: #F8FAFC;
             border: 1px dashed #CBD5E1;
             border-radius: 12px;
-            padding: 12;
+            padding: 12px;
             text-align: center;
             margin-top: 12px;
         }
@@ -343,8 +343,8 @@
 <div class="container card-wrap">
     <header>
         <div class="logo">DECATHLON</div>
-        <h1>大童智能尺码实验系统</h1>
-        <div class="subtitle">数字化生产加固版 兼容规则版</div>
+        <h1>大童智能尺码助手</h1>
+        <div class="subtitle">兼容规则完整版</div>
     </header>
 
     <main>
@@ -399,9 +399,10 @@
                 <span class="input-unit">kg</span>
             </div>
         </div>
+        <!-- 修改备注占位文案 -->
         <div class="form-group">
             <label class="form-label">备注补充 (选填)</label>
-            <input type="text" id="remark" class="input-base form-input-with-unit" placeholder="例如：矮胖儿童">
+            <input type="text" id="remark" class="input-base form-input-with-unit" placeholder="例如：想多穿一季、版型偏好宽松">
         </div>
 
         <div class="form-grid-2" style="gap:8px;">
@@ -417,11 +418,12 @@
                 <div class="rec-style-hint" id="rec-style-hint">--</div>
             </div>
             <div class="data-summary" id="data-summary"></div>
+            <!-- 修改兼容提示柔性文案 -->
             <div class="tip-lowage" id="lowAgeTip" style="display:none;">
-                ⚠️ 提示：该儿童实际年龄低于样本基准7岁，版型偏大，优先宽松款
+                ⚠️ 提示：该儿童实际年龄低于样本基准7岁，版型偏大，试穿建议优先看宽松款
             </div>
             <div class="tip-compatible" id="compatibleTip" style="display:none;">
-                ⚠️ 兼容提示：身高不足123cm，因体重达标放行123码；衣长/裤长偏长，试穿需留意长度
+                ⚠️ 兼容提示：身高不足123cm，体重达标可选购123码，衣长裤长偏长，适合想多穿一季的孩子
             </div>
 
             <div class="feedback-box" id="primary-feedback-area">
@@ -508,7 +510,7 @@
         measureValue2: 0,
         secondarySize: "未触发修正",
         secondaryFeedback: "完美合身/无需修正",
-        isCompatible: false // 标记是否矮胖兼容人群
+        isCompatible: false
     };
 
     function closeModal() {
@@ -554,7 +556,7 @@
     // 围度精细修正尺码
     function getPreciseSize(gender, height, category, measure1, measure2) {
         let baseSize;
-        // 兼容人群固定用123档做基准
+        // 兼容人群固定用123档
         if (currentDataPayload.isCompatible) {
             baseSize = SIZE_BRACKETS[0];
         } else {
@@ -574,9 +576,10 @@
             if (hipDiff < -4 || legDiff < -1) adjustIndex = -1;
         }
         let finalIdx = baseIndex + adjustIndex;
-        if (finalIdx < 0) finalIdx = 0;
-        // 兼容人群不允许超过123档，强制锁0号
+        // 兼容人群不允许超过123档
         if (currentDataPayload.isCompatible && finalIdx > 0) finalIdx = 0;
+        if (finalIdx < 0) finalIdx = 0;
+        if (finalIdx >= SIZE_BRACKETS.length) finalIdx = SIZE_BRACKETS.length - 1;
         return SIZE_BRACKETS[finalIdx];
     }
 
@@ -603,30 +606,25 @@
                 return;
             }
 
-            // ========== 兼容规则核心判定 ==========
-            let targetSize = "";
+            // 兼容规则核心判定
             const compatMinH = 119;
             const compatMaxH = 122;
             const limitWeight = COMPAT_WEIGHT[gender];
+            let targetSize = "";
 
             if (height < compatMinH) {
-                // 低于119cm，直接小童
                 alert(`身高${height}cm低于119cm门槛，请前往小童区域选购`);
                 return;
             } else if (height >= compatMinH && height <= compatMaxH) {
-                // 119~122 兼容区间，双重条件校验
                 if (weight >= limitWeight) {
-                    // 同时满足身高+体重，放行123码
                     targetSize = SIZE_BRACKETS[0];
                     currentDataPayload.isCompatible = true;
                     document.getElementById('compatibleTip').style.display = "block";
                 } else {
-                    // 体重不达标，引导小童
-                    alert(`身高${height}cm，${gender==='boy'?'男':'女'}童体重需≥${limitWeight}kg才可兼容123码，当前${weight}kg，请选购小童版型`);
+                    alert(`身高${height}cm，${gender==='boy'?'男':'女'}童体重需≥${limitWeight}kg才可兼容123码，请选购小童版型`);
                     return;
                 }
             } else {
-                // ≥123 正常大童逻辑
                 targetSize = getBaseSize(height);
                 currentDataPayload.isCompatible = false;
             }
@@ -675,7 +673,7 @@
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
         currentDataPayload.secondarySize = "已执行精细修正";
-        const newFixSize = getPreciseSize(gender, height, category, m1);
+        const newFixSize = getPreciseSize(gender, height, category, m1, m2);
         document.getElementById('rec-code').innerText = newFixSize;
         const recCard = document.getElementById('rec-card-bg');
         recCard.classList.add('revised');
