@@ -18,6 +18,7 @@
             --purple-deep: #6366F1;
             --border-base: #E2E8F0;
             --transition-base: all 0.2s ease;
+            --input-radius: 12px;
         }
 
         * {
@@ -64,13 +65,16 @@
             width: 100%;
             padding: 10px 12px;
             border: 2px solid var(--border-base);
-            border-radius: 10px;
+            border-radius: var(--input-radius);
             font-size: 13.5px;
             outline: none;
             transition: var(--transition-base);
         }
         .input-base:focus {
             border-color: var(--decathlon-blue);
+        }
+        textarea.input-base {
+            border-radius: var(--input-radius);
         }
         .tag-btn {
             padding: 4px 8px;
@@ -108,7 +112,6 @@
         }
         h1 {
             font-size: 18px;
-            color: var(--text-main);
             font-weight: 700;
         }
         .subtitle {
@@ -142,7 +145,6 @@
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 6px;
-            color: var(--text-main);
         }
         .radio-tile-group {
             display: flex;
@@ -325,7 +327,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba11, 14, 36, 0.85);
+            background: rgba(11, 14, 36, 0.85);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -396,7 +398,6 @@
             </div>
         </div>
 
-        <!-- 目标服装品类：radio单选，仅能选一项，无任何注释文字 -->
         <div class="form-group">
             <label class="form-label">目标服装品类</label>
             <div class="radio-tile-group">
@@ -409,7 +410,7 @@
                     <div class="radio-tile">🧥防晒/软壳外套</div>
                 </label>
                 <label class="radio-tile-label">
-                    <input type="radio" name="category" value="pants" onchange="changeToggleJacket()">
+                    <input type="radio" name="pants" onchange="changeToggleJacket()">
                     <div class="radio-tile">👖 长裤</div>
                 </label>
             </div>
@@ -423,7 +424,7 @@
                     <div class="radio-tile">👦 男童</div>
                 </label>
                 <label class="radio-tile-label">
-                    <input type="radio" name="girl">
+                    <input type="radio" name="gender" value="girl">
                     <div class="radio-tile">👧 女童</div>
                 </label>
             </div>
@@ -432,6 +433,7 @@
             <div class="form-group">
                 <label class="form-label">名义年龄</label>
                 <div class="input-wrapper">
+                    <!-- 年龄最小值改为5 -->
                     <input type="number" id="age" class="input-base form-input-with-unit" placeholder="最低5岁" min="5" max="16">
                     <span class="input-unit">岁</span>
                 </div>
@@ -489,14 +491,14 @@
                 <div style="font-size:12px; font-weight:700; color:#E65100; margin-bottom:8px;">📐 精细围度修正</div>
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label class="form-label" id="measure-label-1">实测胸围</label>
+                        <label class="form-label">实测胸围</label>
                         <div class="input-wrapper">
                             <input type="number" id="measure-input-1" class="input-base form-input-with-unit" placeholder="cm" min="30" max="150">
                             <span class="input-unit">cm</span>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" id="measure-label-2">实测腰围</label>
+                        <label class="form-label">实测腰围</label>
                         <div class="input-wrapper">
                             <input type="number" id="measure-input-2" class="input-base form-input-with-unit" placeholder="cm" min="30" max="150">
                             <span class="input-unit">cm</span>
@@ -772,8 +774,8 @@
             const weight = parseFloat(document.getElementById('weight').value);
             const gender = document.querySelector('input[name="gender"]:checked').value;
             resetDownstreamState();
-            if (isNaN(age) || age < 3 || age > 16) {
-                alert("⚠️ 年龄范围3~16岁，请填写有效年龄");
+            if (isNaN(age) || age < 5 || age > 16) {
+                alert("⚠️ 年龄范围5~16岁，请填写有效年龄");
                 return;
             }
             if (isNaN(height) || height < 100 || height > 172) {
@@ -841,7 +843,7 @@
         const m1 = parseFloat(document.getElementById('measure-input-1').value);
         const m2 = parseFloat(document.getElementById('measure-input-2').value);
         const height = parseFloat(document.getElementById('height').value);
-        const weight = parseFloat(document.getElementById('weight'));
+        const weight = parseFloat(document.getElementById('weight').value);
         const gender = document.querySelector('input[name="gender"]:checked').value;
         const category = document.querySelector('input[name="category"]:checked').value;
         const bodyShape = document.querySelector('input[name="bodyShape"]:checked').value;
