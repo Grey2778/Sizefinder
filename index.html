@@ -398,6 +398,7 @@
             </div>
         </div>
 
+        <!-- 目标服装品类 radio 单选，仅能选一项 -->
         <div class="form-group">
             <label class="form-label">目标服装品类</label>
             <div class="radio-tile-group">
@@ -410,7 +411,7 @@
                     <div class="radio-tile">🧥防晒/软壳外套</div>
                 </label>
                 <label class="radio-tile-label">
-                    <input type="radio" name="pants" onchange="changeToggleJacket()">
+                    <input type="radio" name="category" value="pants" onchange="changeToggleJacket()">
                     <div class="radio-tile">👖 长裤</div>
                 </label>
             </div>
@@ -429,11 +430,11 @@
                 </label>
             </div>
         </div>
+
         <div class="form-grid-2">
             <div class="form-group">
                 <label class="form-label">名义年龄</label>
                 <div class="input-wrapper">
-                    <!-- 年龄最小值改为5 -->
                     <input type="number" id="age" class="input-base form-input-with-unit" placeholder="最低5岁" min="5" max="16">
                     <span class="input-unit">岁</span>
                 </div>
