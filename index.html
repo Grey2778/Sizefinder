@@ -16,7 +16,7 @@
             --error-red: #D32F2F;
             --success-green: #2E7D32;
             --purple-deep: #6366F1;
-            --border-base: #E2E8F;
+            --border-base: #E2E8F0;
             --transition-base: all 0.2s ease;
         }
 
@@ -325,7 +325,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(11, 14, 36, 0.85);
+            background: rgba11, 14, 36, 0.85);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -396,6 +396,7 @@
             </div>
         </div>
 
+        <!-- 目标服装品类：radio单选，仅能选一项，无任何注释文字 -->
         <div class="form-group">
             <label class="form-label">目标服装品类</label>
             <div class="radio-tile-group">
@@ -408,11 +409,12 @@
                     <div class="radio-tile">🧥防晒/软壳外套</div>
                 </label>
                 <label class="radio-tile-label">
-                    <input type="radio" name="pants" onchange="changeToggleJacket()">
+                    <input type="radio" name="category" value="pants" onchange="changeToggleJacket()">
                     <div class="radio-tile">👖 长裤</div>
                 </label>
             </div>
         </div>
+
         <div class="form-group">
             <label class="form-label">性别</label>
             <div class="radio-tile-group">
