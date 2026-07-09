@@ -42,7 +42,7 @@
         .card-wrap {
             background: var(--container-bg);
             border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0.05);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
             padding: 20px;
         }
         .btn-base {
@@ -547,8 +547,8 @@
                 <button type="button" id="btn-secondary-calc" class="btn-base btn-warning" onclick="matchSecondarySize()">运行 P95 三维修正算法</button>
             </div>
 
-            <div class="feedback-box second-feedback-box" id="second-feedback-area">
-                <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">✨ 阶段二：精细修正后试穿反馈</div>
+            <div class="feedback-box" id="second-feedback-area">
+                <div style="font-size:12px; font-weight:700; color:#6366F1; margin-bottom:8px;">✨ 阶段二：精细修正后试穿反馈</div>
                 <div class="radio-tile-group">
                     <button class="btn-feedback" id="btn-second-fit" onclick="handleSecondFeedback(this, '修正后合身')">✅ 修正后合身</button>
                     <button class="btn-feedback" id="btn-second-unfit" onclick="handleSecondFeedback(this, '依旧不合身')">❌ 依旧不合身</button>
@@ -556,7 +556,7 @@
             </div>
 
             <div class="feedback-box" id="secondary-feedback-area" style="display:none;">
-                <div style="font-size:12px; font-weight:700; color:var(--purple-deep); margin-bottom:8px;">🚀 用户评价与反馈</div>
+                <div style="font-size:12px; font-weight:700; color:#6366F1; margin-bottom:8px;">🚀 用户评价与反馈</div>
                 <div class="form-group">
                     <label class="form-label">本尺码推荐是否有帮助？</label>
                     <div class="radio-tile-group">
@@ -625,7 +625,6 @@
     let isSubmitting = false;
     let calcTimer = null;
     let currentVerifyCode = "";
-    // 扩充payload，新增基础身高体重年龄、品类、性别、原始备注
     let currentDataPayload = {
         age: null,
         height: null,
@@ -649,7 +648,6 @@
         createDay: new Date().toLocaleDateString()
     };
 
-    // 生成6位核销码
     function create6VerifyCode() {
         const str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let code = "";
@@ -818,7 +816,6 @@
             const remark = document.getElementById('remark').value.trim();
             resetDownstreamState();
 
-            // 基础参数存入payload
             currentDataPayload.age = age;
             currentDataPayload.height = height;
             currentDataPayload.weight = weight;
@@ -906,7 +903,6 @@
             alert("请填写30~150cm有效围度");
             return;
         }
-        // 存入围度数据
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
         currentDataPayload.secondarySize = "已执行精细修正";
@@ -945,7 +941,6 @@
     function handleSecondFeedback(btnElement, status) {
         document.querySelectorAll('#second-feedback-area .btn-feedback').forEach(btn => btn.classList.remove('selected'));
         btnElement.classList.add('selected');
-        // 抓取二次反馈结果
         currentDataPayload.secondaryFeedback = status;
         document.getElementById('secondary-feedback-area').style.display = "block";
         refreshTagBox();
@@ -954,7 +949,6 @@
 
     function secureSubmitToCloud() {
         if (isSubmitting) return;
-        // 提交生成核销码
         currentVerifyCode = create6VerifyCode();
         currentDataPayload.verifyCode = currentVerifyCode;
         currentDataPayload.createDay = new Date().toLocaleDateString();
@@ -965,15 +959,40 @@
         currentDataPayload.useScene = checkedScene.join(',') || "无";
         currentDataPayload.useful = useful;
         currentDataPayload.parentTextFeedback = parentText;
+        
         isSubmitting = true;
+
+        // 【核心字段重构】：缩减顶层属性，将琐碎体征全部聚合并存入 infoDetails 对象
         const finalData = {
-            ...currentDataPayload,
-            clientTimestamp: new Date().getTime()
+            verifyCode: currentVerifyCode,
+            createDay: currentDataPayload.createDay,
+            clientTimestamp: new Date().getTime(),
+            infoDetails: {
+                age: currentDataPayload.age,
+                height: currentDataPayload.height,
+                weight: currentDataPayload.weight,
+                gender: currentDataPayload.gender,
+                category: currentDataPayload.category,
+                remark: currentDataPayload.remark,
+                primarySize: currentDataPayload.primarySize,
+                primaryFeedback: currentDataPayload.primaryFeedback,
+                measureValue1: currentDataPayload.measureValue1,
+                measureValue2: currentDataPayload.measureValue2,
+                secondarySize: currentDataPayload.secondarySize,
+                secondaryFeedback: currentDataPayload.secondaryFeedback,
+                isCompatible: currentDataPayload.isCompatible,
+                bodyShape: currentDataPayload.bodyShape,
+                wearPrefer: currentDataPayload.wearPrefer,
+                useScene: currentDataPayload.useScene,
+                useful: currentDataPayload.useful,
+                parentTextFeedback: currentDataPayload.parentTextFeedback
+            }
         };
 
         const appId = "51e33a4a49bc32401b098ad45ef9827b";
         const apiKey = "6caadbe3f3f5ca1eed3d6a9324842383";
-        fetch("https://api.bmobcloud.com/1/classes/JRSFFeedback", {
+        
+        fetch("https://api.codenow.cn/1/classes/JRSFFeedback", {
             method: "POST",
             headers: {
                 "X-Bmob-Application-Id": appId,
@@ -982,13 +1001,16 @@
             },
             body: JSON.stringify(finalData)
         })
-        .then(res => {
-            if (!res.ok) throw new Error("接口异常");
+        .then(async res => {
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(`服务器拒绝接收 [状态码 ${res.status}]: ${JSON.stringify(errorData)}`);
+            }
             document.getElementById("showVerifyCode").innerText = currentVerifyCode;
             document.getElementById('gift-modal').style.display = "flex";
         })
         .catch(err => {
-            alert("数据上传失败，请检查网络后重试");
+            alert("上传未能完成，请参考以下提示：\n" + err.message);
             console.error(err);
         })
         .finally(() => {
