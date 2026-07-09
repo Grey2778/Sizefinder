@@ -360,6 +360,13 @@
             border-radius: 10px;
             line-height: 1.4;
         }
+        .verify-code-text {
+            font-size: 28px;
+            letter-spacing:4px;
+            color:#D32F2F;
+            font-weight:900;
+            margin:12px 0;
+        }
         .modal-close {
             margin-top: 10px;
             background: #ccc;
@@ -398,7 +405,6 @@
             </div>
         </div>
 
-        <!-- 目标服装品类 radio 单选，仅能选一项 -->
         <div class="form-group">
             <label class="form-label">目标服装品类</label>
             <div class="radio-tile-group">
@@ -492,14 +498,14 @@
                 <div style="font-size:12px; font-weight:700; color:#E65100; margin-bottom:8px;">📐 精细围度修正</div>
                 <div class="form-grid-2">
                     <div class="form-group">
-                        <label class="form-label">实测胸围</label>
+                        <label class="form-label" id="measure-label-1">实测胸围</label>
                         <div class="input-wrapper">
                             <input type="number" id="measure-input-1" class="input-base form-input-with-unit" placeholder="cm" min="30" max="150">
                             <span class="input-unit">cm</span>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">实测腰围</label>
+                        <label class="form-label" id="measure-label-2">实测腰围</label>
                         <div class="input-wrapper">
                             <input type="number" id="measure-input-2" class="input-base form-input-with-unit" placeholder="cm" min="30" max="150">
                             <span class="input-unit">cm</span>
@@ -582,7 +588,12 @@
     <div class="modal-container">
         <div class="modal-title">🎉 感谢您的真实反馈</div>
         <div style="font-size: 13px; color: var(--text-muted);">数据已存档</div>
-        <div class="modal-highlight">📸 截图到前台领取小礼物</div>
+        <div class="modal-highlight">
+            领奖核销码
+            <div class="verify-code-text" id="showVerifyCode">XXXXXX</div>
+            凭此页面到前台领取礼品<br>
+            <small>当日有效，一码仅可兑换一次，截图转发无效</small>
+        </div>
         <button class="btn-base btn-calc" onclick="location.reload()">重置系统</button>
         <button class="btn-base modal-close" onclick="closeModal()">关闭弹窗</button>
     </div>
@@ -613,20 +624,41 @@
 
     let isSubmitting = false;
     let calcTimer = null;
+    let currentVerifyCode = "";
+    // 扩充payload，新增基础身高体重年龄、品类、性别、原始备注
     let currentDataPayload = {
+        age: null,
+        height: null,
+        weight: null,
+        gender: "",
+        category: "",
+        remark: "",
         primarySize: "",
         primaryFeedback: "",
         measureValue1: 0,
         measureValue2: 0,
         secondarySize: "未触发修正",
-        secondaryFeedback: "完美合身/无需修正",
+        secondaryFeedback: "未进行二次反馈",
         isCompatible: false,
         bodyShape: "normal",
         wearPrefer: "fit",
         useScene: "",
         useful: "yes",
-        parentTextFeedback: ""
+        parentTextFeedback: "",
+        verifyCode: "",
+        createDay: new Date().toLocaleDateString()
     };
+
+    // 生成6位核销码
+    function create6VerifyCode() {
+        const str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let code = "";
+        for(let i=0; i<6; i++){
+            const randomIdx = Math.floor(Math.random() * str.length);
+            code += str[randomIdx];
+        }
+        return code;
+    }
 
     const MAX_SCENE_SELECT = 3;
     const sceneCheckboxes = document.querySelectorAll('input[name="scene"]');
@@ -690,15 +722,22 @@
         refreshSceneDisabled();
         resetDownstreamState();
         document.getElementById('consumer-view').style.display = "none";
+        currentVerifyCode = "";
     }
 
     function resetDownstreamState() {
+        currentDataPayload.age = null;
+        currentDataPayload.height = null;
+        currentDataPayload.weight = null;
+        currentDataPayload.gender = "";
+        currentDataPayload.category = "";
+        currentDataPayload.remark = "";
         currentDataPayload.primarySize = "";
         currentDataPayload.primaryFeedback = "";
         currentDataPayload.measureValue1 = 0;
         currentDataPayload.measureValue2 = 0;
         currentDataPayload.secondarySize = "未触发修正";
-        currentDataPayload.secondaryFeedback = "完美合身/无需修正";
+        currentDataPayload.secondaryFeedback = "未进行二次反馈";
         currentDataPayload.isCompatible = false;
         currentDataPayload.bodyShape = "normal";
         currentDataPayload.wearPrefer = "fit";
@@ -706,6 +745,7 @@
         currentDataPayload.useScene = checkedScene.join(',') || "无";
         currentDataPayload.useful = "yes";
         currentDataPayload.parentTextFeedback = "";
+        currentDataPayload.verifyCode = "";
 
         document.getElementById('measure-input-1').value = "";
         document.getElementById('measure-input-2').value = "";
@@ -774,7 +814,18 @@
             const height = parseFloat(document.getElementById('height').value);
             const weight = parseFloat(document.getElementById('weight').value);
             const gender = document.querySelector('input[name="gender"]:checked').value;
+            const category = document.querySelector('input[name="category"]:checked').value;
+            const remark = document.getElementById('remark').value.trim();
             resetDownstreamState();
+
+            // 基础参数存入payload
+            currentDataPayload.age = age;
+            currentDataPayload.height = height;
+            currentDataPayload.weight = weight;
+            currentDataPayload.gender = gender;
+            currentDataPayload.category = category;
+            currentDataPayload.remark = remark;
+
             if (isNaN(age) || age < 5 || age > 16) {
                 alert("⚠️ 年龄范围5~16岁，请填写有效年龄");
                 return;
@@ -855,6 +906,7 @@
             alert("请填写30~150cm有效围度");
             return;
         }
+        // 存入围度数据
         currentDataPayload.measureValue1 = m1;
         currentDataPayload.measureValue2 = m2;
         currentDataPayload.secondarySize = "已执行精细修正";
@@ -893,6 +945,7 @@
     function handleSecondFeedback(btnElement, status) {
         document.querySelectorAll('#second-feedback-area .btn-feedback').forEach(btn => btn.classList.remove('selected'));
         btnElement.classList.add('selected');
+        // 抓取二次反馈结果
         currentDataPayload.secondaryFeedback = status;
         document.getElementById('secondary-feedback-area').style.display = "block";
         refreshTagBox();
@@ -901,6 +954,11 @@
 
     function secureSubmitToCloud() {
         if (isSubmitting) return;
+        // 提交生成核销码
+        currentVerifyCode = create6VerifyCode();
+        currentDataPayload.verifyCode = currentVerifyCode;
+        currentDataPayload.createDay = new Date().toLocaleDateString();
+
         const parentText = document.getElementById('parentFeedback').value.trim();
         const useful = document.querySelector('input[name="useful"]:checked').value;
         const checkedScene = Array.from(sceneCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
@@ -926,6 +984,7 @@
         })
         .then(res => {
             if (!res.ok) throw new Error("接口异常");
+            document.getElementById("showVerifyCode").innerText = currentVerifyCode;
             document.getElementById('gift-modal').style.display = "flex";
         })
         .catch(err => {
