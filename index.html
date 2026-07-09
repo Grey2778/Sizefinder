@@ -374,9 +374,8 @@
 
     <main>
         <div class="info-section-title">🏃 核心体征指标</div>
-        <!-- 使用场景改为复选框，最多选3项 -->
         <div class="form-group">
-            <label class="form-label">使用场景（最多选3项，点击已选项可取消）</label>
+            <label class="form-label">使用场景</label>
             <div class="radio-tile-group" id="sceneCheckGroup">
                 <label class="radio-tile-label">
                     <input type="checkbox" name="scene" value="hiking">
@@ -431,7 +430,7 @@
             <div class="form-group">
                 <label class="form-label">名义年龄</label>
                 <div class="input-wrapper">
-                    <input type="number" id="age" class="input-base form-input-with-unit" placeholder="最低5岁" min="5" max="16">
+                    <input type="number" id="age" class="input-base form-input-with-unit" placeholder="最低3岁" min="3" max="16">
                     <span class="input-unit">岁</span>
                 </div>
             </div>
@@ -473,7 +472,7 @@
                 ⚠️ 提示：该儿童实际年龄低于样本基准7岁，版型偏大，试穿建议优先看宽松款
             </div>
             <div class="tip-compatible" id="compatibleTip" style="display:none;">
-                ⚠️ 兼容提示：身高不足123cm，体重达标可选购123码，衣长裤长偏长，适合想多穿一季的孩子
+                ⚠️ 兼容提示：身高不足123cm，衣长裤长偏长，适合想多穿一季的孩子
             </div>
 
             <div class="feedback-box" id="primary-feedback-area">
@@ -585,7 +584,6 @@
 </div>
 
 <script>
-    // 官方男女体型标准
     const SIZE_BRACKETS = ["123-130cm 7-8岁", "131-140cm 8-9岁", "141-150cm 10-11岁", "151-160cm 12-13岁", "161-172cm 14-15岁"];
     const BOY_STANDARDS = {
         "123-130cm 7-8岁": { chest: 63.74, waist: 57.99, hip: 67.55, leg: 20.39, avgWeight: 26.67 },
@@ -602,7 +600,6 @@
         "161-172cm 14-15岁": { chest: 85.94, waist: 74.65, hip: 93.75, leg: 24.77, avgWeight: 56.62 }
     };
     const COMPAT_WEIGHT = { girl: 21.7, boy: 22.7 };
-    // 版型标签
     const TAG_MAP = {
         tshirt: ["袖太长","袖太短","衣太长","衣太短","合身"],
         jacket: ["袖太长","袖太短","衣太长","衣太短","合身"],
@@ -626,7 +623,6 @@
         parentTextFeedback: ""
     };
 
-    // ========== 运动场景多选限制逻辑 ==========
     const MAX_SCENE_SELECT = 3;
     const sceneCheckboxes = document.querySelectorAll('input[name="scene"]');
     function refreshSceneDisabled() {
@@ -651,7 +647,6 @@
     });
     refreshSceneDisabled();
 
-    // 切换品类刷新版型标签
     function refreshTagBox() {
         const cat = document.querySelector('input[name="category"]:checked').value;
         const tags = TAG_MAP[cat];
@@ -674,7 +669,6 @@
         refreshTagBox();
     }
 
-    // 标签填入反馈框
     function addTag(text) {
         const input = document.getElementById('parentFeedback');
         if(input.value) input.value += "，";
@@ -687,7 +681,6 @@
 
     function fullResetAll() {
         document.querySelectorAll('.input-base,textarea').forEach(input => input.value = "");
-        // 清空所有场景勾选
         sceneCheckboxes.forEach(cb => cb.checked = false);
         refreshSceneDisabled();
         resetDownstreamState();
@@ -704,7 +697,6 @@
         currentDataPayload.isCompatible = false;
         currentDataPayload.bodyShape = "normal";
         currentDataPayload.wearPrefer = "fit";
-        // 读取多选场景逗号拼接
         const checkedScene = Array.from(sceneCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
         currentDataPayload.useScene = checkedScene.join(',') || "无";
         currentDataPayload.useful = "yes";
@@ -729,13 +721,11 @@
         refreshTagBox();
     }
 
-    // 身高匹配基础尺码
     function getBaseSize(height) {
         let baseIndex = height < 131 ? 0 : height < 141 ? 1 : height < 151 ? 2 : height < 161 ? 3 : 4;
         return SIZE_BRACKETS[baseIndex];
     }
 
-    // 三层尺码计算
     function getPreciseSize(gender, height, category, measure1, measure2) {
         let baseSize;
         if (currentDataPayload.isCompatible) baseSize = SIZE_BRACKETS[0];
@@ -772,7 +762,6 @@
         return { finalIdx, baseSize, standard };
     }
 
-    // 初次计算尺码
     function matchPrimarySize() {
         clearTimeout(calcTimer);
         calcTimer = setTimeout(() => {
@@ -807,7 +796,7 @@
                     currentDataPayload.isCompatible = true;
                     document.getElementById('compatibleTip').style.display = "block";
                 } else {
-                    alert(`身高${height}cm，${gender==='男'?'男':'女'}童体重需≥${limitWeight}，选购小童版型`);
+                    alert(`身高${height}cm，${gender==='boy'?'男':'女'}童体重需≥${limitWeight}，选购小童版型`);
                     return;
                 }
             } else {
@@ -816,7 +805,6 @@
             }
 
             currentDataPayload.primarySize = targetSize;
-            // 同步读取选中场景存入payload
             const checkedScene = Array.from(sceneCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
             currentDataPayload.useScene = checkedScene.join(',') || "无";
             document.getElementById('rec-code').innerText = targetSize;
@@ -847,7 +835,6 @@
         }
     }
 
-    // 三维修正计算
     function matchSecondarySize() {
         const m1 = parseFloat(document.getElementById('measure-input-1').value);
         const m2 = parseFloat(document.getElementById('measure-input-2').value);
@@ -907,12 +894,10 @@
         document.getElementById('secondary-feedback-area').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 提交数据
     function secureSubmitToCloud() {
         if (isSubmitting) return;
         const parentText = document.getElementById('parentFeedback').value.trim();
         const useful = document.querySelector('input[name="useful"]:checked').value;
-        // 重新读取场景
         const checkedScene = Array.from(sceneCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
         currentDataPayload.useScene = checkedScene.join(',') || "无";
         currentDataPayload.useful = useful;
